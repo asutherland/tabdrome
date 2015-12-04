@@ -1,0 +1,2 @@
+// #product => .value
+// #component => .value

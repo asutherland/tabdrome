@@ -28,7 +28,6 @@ export class SiteHierarchyArranger {
 
   arrangeTab(normTabs, root) {
     // (we will only get tabs we bid for)
-
     for (let normTab of normTabs) {
       let node = root.getOrCreateGroup(
         {

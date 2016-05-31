@@ -3,13 +3,22 @@
  * can connect and be happy and everything works.
  **/
 
-import TabTracker from 'tab_tracker';
-import Tabulator from 'tabulator';
-import ClientBridge from 'client_bridge';
 
-const clientBridge = new ClientBridge();
+const TabTracker = require('./tab_tracker');
+const Tabulator = require('./tabulator');
+const ClientBridgeBackend = require('./client_bridge_backend');
+
+const clientBridge = new ClientBridgeBackend();
 const tracker = new TabTracker({
   onWindowTabChanges: (windowId, windowNormTabsById) => {
     clientBridge.onWindowTabChanges(windowId, windowNormTabsById);
   }
 });
+
+function handleClick() {
+  chrome.tabs.create({
+    url: chrome.extension.getURL('tabdrome.html')
+  });
+}
+
+chrome.browserAction.onClicked.addListener(handleClick);

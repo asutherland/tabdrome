@@ -8,6 +8,7 @@
  * is not supported by Firefox, so we would do inference in here.)
  *
  * ## Execution Context ##
+ *
  * Despite the presence of the extension APIs in all of our page contexts, we
  * only run in the background page.  This is because we only (want to) receive
  * and process data from content scripts in one place.
@@ -47,7 +48,7 @@ class TabTracker {
   }
 
   _listenForEvents() {
-    chrome.tabs.onActivated.addListener(this.onActivated.bind(this));
+    // Note that we don't need onActivated since onUpdated will be invoked.
     chrome.tabs.onCreated.addListener(this.onCreated.bind(this));
     chrome.tabs.onUpdated.addListener(this.onUpdated.bind(this));
     chrome.tabs.onRemoved.addListener(this.onRemoved.bind(this));
@@ -84,7 +85,7 @@ class TabTracker {
       origin: url.origin,
       searchParams: searchDict
     };
-  },
+  }
 
   _getOrCreateWindowTabs(windowId) {
     let tabs = this.normTabsByWindow.get(windowId);
@@ -147,7 +148,12 @@ class TabTracker {
   }
 
   _processTabUpdate(tab) {
-    let normTab = this._getNormTabOrExplode(tab.id);
+    let normTab = this.normTabsById.get(tab.id);
+    if (!normTab) {
+      // It's possible to get an update event before the creation event.  In
+      // that case, just leave it to the create event.
+      return;
+    }
     if (normTab.windowId !== tab.windowId) {
       let oldWindowTabs = this._getOrCreateWindowTabs(normTab.windowId);
       let newWindowTabs = this._getOrCreateWindowTabs(tab.windowId);
@@ -177,8 +183,9 @@ class TabTracker {
   _getNormTabOrExplode(tabId) {
     let tab = this.normTabsById.get(tabId);
     if (!tab) {
-      throw new Error('Heard about unknown tab with id: ' + tabId)
+      throw new Error('Heard about unknown tab with id: ' + tabId);
     }
+    return tab;
   }
 
   /**
@@ -196,27 +203,31 @@ class TabTracker {
     this._reportDirtyWindow(normTab.windowId);
   }
 
-  onActivated({ tabId, windowId }) {
-    // XXX It's not clear what the semantics for this are.  Is onUpdated
-    // invoked anyways?  let's just log this for now.
-    console.log('onActivated', tabId);
-  }
-
+  /**
+   * We can get updates before creations, and in practice the difference does
+   * not matter.
+   */
   onCreated(tab) {
     console.log('onCreated', tab.id);
     this._learnAboutBrowserTab(tab);
   }
 
   onUpdated(tabId, changeInfo, tab) {
-    console.log('onUpdated', tabId);
+    console.log('onUpdate', tabId);
     this._processTabUpdate(tab);
   }
 
-  onRemoved(tabId, { windowId, isWindowClosing }) {
+  onRemoved(tabId/*, { windowId, isWindowClosing }*/) {
+    console.log('onRemoved', tabId);
     // XXX as noted elsewhere, we need to handle window closing better/at all.
     this._deletedTab(tabId);
   }
 
+  /**
+   * Deferred (via setTimeout scheduled by _reportDirtyWindow) processing of
+   * dirty windows for efficiency/sanity purposes.  Invokes the
+   * onWindowTabChanges originally passed in to our object constructor.
+   */
   _flushToTabulator() {
     for (let windowId of this._dirtyWindows) {
       let windowNormTabs = this._getOrCreateWindowTabs(windowId);
@@ -225,3 +236,5 @@ class TabTracker {
     this._dirtyWindows.clear();
   }
 }
+
+module.exports = TabTracker;

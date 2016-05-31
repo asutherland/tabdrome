@@ -1,0 +1,25 @@
+{
+  "applications": {
+    "gecko": {
+      "id": "tabdrome@visophyte.org",
+      "strict_min_version": "49.0a1"
+    }
+  },
+  "browser_action": {
+      "browser_style": false,
+      "default_icon": "tabdrome.svg",
+      "default_title": "Tabdrome"
+  },
+  "description": "Tabs, Tabs, Tabs, Tabs, Tabbity Tabs!",
+  "homepage_url": "https://github.com/asutherland/tabdrome",
+  "icons": {
+    "64": "tabdrome.png"
+  },
+  "manifest_version": 2,
+  "name": "Tabdrome",
+  "version": "0.1",
+  "background": {
+    "scripts": ["backend-main.js"]
+  },
+  "permissions": ["tabs"]
+}

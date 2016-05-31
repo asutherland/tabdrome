@@ -4,10 +4,11 @@ extension.  This file documents it.
 # Meta #
 
 ## Why? ##
-We fundamentally need a normalized representation because we're allowing content
-scripts (or clever URL analyzers) to provide us supplemental data like rich
-breadcrumb information, "you wrote something in the bug!" indications, and gmail
-new message counts-by-tab/labels.
+
+We need a normalized representation because we're allowing content scripts (or
+clever URL analyzers) to provide us supplemental data like rich breadcrumb
+information, "you wrote something in the bug!" indications, and gmail new
+message counts-by-tab/labels.
 
 There is also the need to do things that paper over current limitations in the
 chrome.tabs API, or simply the Gecko implementation of it.  For example, as I

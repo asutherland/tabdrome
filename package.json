@@ -4,12 +4,24 @@
   "description": "destroyer of tabs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "webpack --config webpack-production.config.js --progress --colors --display-error-details"
   },
   "author": "",
   "license": "Apache-2.0",
+  "repository": "https://github.com/asutherland/tabdrome",
   "dependencies": {
+    "react": "^15.0.2",
+    "react-addons-pure-render-mixin": "^15.0.2",
+    "react-dom": "^15.0.2"
+  },
+  "devDependencies": {
+    "babel-core": "^6.8.0",
+    "babel-eslint": "^6.0.4",
+    "babel-loader": "^6.2.4",
+    "babel-preset-react": "^6.5.0",
     "eslint": "^1.5.1",
-    "eslint-plugin-react": "^3.4.2"
+    "eslint-plugin-react": "^3.4.2",
+    "transfer-webpack-plugin": "^0.1.4",
+    "webpack": "^1.13.0"
   }
 }

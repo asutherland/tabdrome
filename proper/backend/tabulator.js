@@ -43,17 +43,24 @@ function makeFieldComparator(sortField) {
 }
 
 /**
- * Right now
+ * Sort children, parametrized by a props dictionary that presumably belongs to
+ * the parent and may specify a specific sorting rule to use.
+ *
+ * The rationale behind this method and its structuring is:
+ * - Not everything has to use the same sort order.  Heterogeneous, yo.
+ * - We want the groups to be inert data so they can go over the wire cleanly.
+ *   Hence string values in props rather than direct comparator functions.
  */
 function sortChildren(props, children) {
   let sortBy = props.sortChildrenBy;
   let sortingComparator;
   switch (sortBy) {
-    case 'root':
+    // using $ as a magic prefix for now.
+    case '$root':
       sortingComparator = rootComparator;
       break;
 
-    // Did they specify a props field to sort by?
+    // Otherwise let's assume they want to sort on the props value of this key.
     default:
       sortingComparator = makeFieldComparator(sortBy);
       break;
@@ -61,7 +68,7 @@ function sortChildren(props, children) {
 
   let sorted = children;
   sorted.sort(sortingComparator);
-  return storted;
+  return sorted;
 }
 
 /**
@@ -119,22 +126,27 @@ class GroupNode {
    * structure that can be structured-cloned and/or JSON.stringify'd.
    */
   __serialize() {
+    const sortedKids = sortChildren(this.props, this.children);
     return {
       props: Object.assign({}, this.props),
-      children: sortChildren(this.props, this.children)
+      children: sortedKids.map(x => x.__serialize())
     };
   }
 }
 
+/**
+ * A regular node but with a default set of props that specifies we should use
+ * our special root comparator.
+ */
 class RootNode extends GroupNode {
   constructor() {
-    super(this, null, { sortChildrenBy: 'root' })
+    super(this, null, { sortChildrenBy: '$root' });
   }
 }
 
 function translateBidTagsToNumbers(tag) {
   switch (tag) {
-    case 'extension-impliest-intent':
+    case 'extension-implies-intent':
       return 2;
     case 'meh':
       return 1;
@@ -143,13 +155,19 @@ function translateBidTagsToNumbers(tag) {
   }
 }
 
-export class Tabulator {
+class Tabulator {
   constructor({ arrangers }) {
     this.arrangers = arrangers;
   }
 
+  /**
+   * Given a list of normalized tabs, let all of the arrangers bid on the tabs,
+   * then arrange the tabs they won into the recursive GroupNode hierarchy, with
+   * us returning the root node.
+   */
   tabulate(tabs) {
     // - Bid!
+    // Keys are Arrangers, values are lists of tabs.
     let assignments = new Map();
     for (let arranger of this.arrangers) {
       assignments.set(arranger, []);
@@ -173,17 +191,19 @@ export class Tabulator {
         throw new Error('no one bid on tab:' + tab.id);
       }
 
-      assignments.get(arranger).push(tab);
+      assignments.get(useArranger).push(tab);
     }
 
     // - Arrange!
-    let root = new GroupNode();
+    let root = new RootNode();
     for (let [arranger, assignedTabs] of assignments) {
       if (assignedTabs.length) {
-        arranger.arrangeTabs()
+        arranger.arrangeTabs(assignedTabs, root);
       }
     }
 
     return root;
   }
 }
+
+module.exports = Tabulator;

@@ -16,7 +16,7 @@ class SessionArranger {
   constructor() {
   }
 
-  bidForTab(normTab) {
+  bidForTab(/*normTab*/) {
     // We can place all tabs!  Hooray!
     return 'meh';
   }
@@ -34,8 +34,11 @@ class SessionArranger {
         },
         {
           rootSortGroup: normTab.pinned ? 'pinned' : 'normal',
-          rootSortKey: normTab.index
+          rootSortKey: normTab.index,
+          serial: normTab.serial
         });
     }
   }
 }
+
+module.exports = SessionArranger;

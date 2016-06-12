@@ -9,9 +9,12 @@ const Tabulator = require('./tabulator');
 const ClientBridgeBackend = require('./client_bridge_backend');
 
 const clientBridge = new ClientBridgeBackend();
-const tracker = new TabTracker({
+const tabulator = new Tabulator();
+window.tracker = new TabTracker({
   onWindowTabChanges: (windowId, windowNormTabsById) => {
-    clientBridge.onWindowTabChanges(windowId, windowNormTabsById);
+    const rootGroup = tabulator.tabulate(windowNormTabsById);
+    const serializedRootGroup = rootGroup.__serialize();
+    clientBridge.onWindowTabChanges(windowId, serializedRootGroup);
   }
 });
 

@@ -6,7 +6,7 @@ function makeClusteringDomainSortString(domain) {
   return domain.split('.').reverse().join('.');
 }
 
-export class SiteHierarchyArranger {
+class SiteHierarchyArranger {
   constructor() {
   }
 
@@ -41,6 +41,7 @@ export class SiteHierarchyArranger {
             normTab.parsedUrl.hostname),
           // And our children just want to be sorted by their text value.
           sortChildrenBy: 'text'
+          // as a parent, our serial is derived from our children exclusively
         });
 
       let breadcrumbs = normTab.fromContent.breadcrumbs;
@@ -76,7 +77,9 @@ export class SiteHierarchyArranger {
           text: lastCrumb.text || normTab.title,
           // it's possible for breadcrumbs to live under us too!
           sortChildrenBy: 'text'
-        }
+        });
     }
   }
 }
+
+module.exports = SiteHierarchyArranger;

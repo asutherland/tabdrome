@@ -82,10 +82,28 @@ function sortChildren(props, children) {
  * However, those groups could also be things like breadcrumb pieces.  Or a
  * picture of a cat.  Who knows!  We're just a data structure with poorly
  * defined terminology.
+ *
+ * @param {RootNode} rootNode
+ *   The root node of this tree; I'm not clear why I provided this linkage.
+ *   Presumably I did it because the root node is the only one that is its own
+ *   special class and it's a place to stash context/environment information.
+ *   (Or maybe I did it for debugging?)
+ * @param {String} groupRelId
+ *   An identifier for this object derived from its definingProps that should be
+ *   stable through multiple independent tabulation cycles.  Currently a
+ *   stringified representation of the definingProps, but it could be a hash in
+ *   the future.
+ * @param {Object} definingProps
+ *   See `getOrCreateGroup`
+ * @param {Object} extraProps
+ *   See `getOrCreateGroup`
+ * @param {Object} [weakProps]
+ *   See `getOrCreateGroup`
  */
 class GroupNode {
-  constructor(rootNode, definingProps, extraProps, weakProps) {
+  constructor(rootNode, groupRelId, definingProps, extraProps, weakProps) {
     this.rootNode = rootNode;
+    this.groupRelId = groupRelId;
     this.children = [];
     this.props = Object.assign({}, definingProps, extraProps);
     if (weakProps) {
@@ -99,7 +117,21 @@ class GroupNode {
 
   /**
    * Find an existing GroupNode child that possesses that same defining property
-   * values.  If it does not exist, create it.
+   * values.  If it does not exist, create it with the given properties.
+   *
+   * @param {Object} definingProps
+   *   Object dictionary whose keys/values are tested for equivalence against
+   *   existing children.  If a match is found, we return that child without
+   *   modifying it.  TBD: Should weakProps apply?
+   * @param {Object} extraProps
+   *   Object dictionary whose keys/values should be set but not used for
+   *   equivalence testing.
+   * @param {Object} [weakProps]
+   *   Uh, properties to apply if they don't clobber existing props.  It's not
+   *   clear what my intent here was.  This could have been meant as props to
+   *   apply if a child already exists.  Or it could have been a weird way to
+   *   structure defaults (the alternate is just put them in Object.assign
+   *   before the things that should override them).
    */
   getOrCreateGroup(definingProps, extraProps, weakProps) {
     // - Try and find the existing kid.
@@ -116,20 +148,40 @@ class GroupNode {
       }
     }
 
-    // - Nope, gotta create a new kid.  Go figure.
+    let groupRelId = '';
+    for (let key of definingProps) {
+      groupRelId += '!' + key + '=' + definingProps[key];
+    }
+
+    // - Nope, gotta create a new kid.
     let kid = new GroupNode(this.rootNode, definingProps, extraProps, weakProps);
     this.children.push(kid);
+    return kid;
   }
 
   /**
-   * Render ourselves into an ordered, shallowly snapshotted, inert data
-   * structure that can be structured-cloned and/or JSON.stringify'd.
+   * Recursively render ourselves and our children into an inert data structure.
+   * Props are cloned shallowly, children are sorted and __serialize recursively
+   * invoked on them.
    */
   __serialize() {
     const sortedKids = sortChildren(this.props, this.children);
+    let maxSerial = this.props.serial || 0;
+    const serializedKids = sortedKids.map(x => {
+      const serialized = x.__serialize();
+      maxSerial = Math.max(maxSerial, serialized.serial || 0);
+      return serialized;
+    });
+
     return {
-      props: Object.assign({}, this.props),
-      children: sortedKids.map(x => x.__serialize())
+      groupRelId: this.groupRelId,
+      serial: maxSerial,
+      // Rename from props to nodeProps to avoid confusion as this possibly
+      // crosses into React-space where "props" has pretty clear semantics.  UI
+      // may still spread these into acutal props, but better for that to be an
+      // explicit, clear transition.
+      nodeProps: Object.assign({}, this.props),
+      children: serializedKids
     };
   }
 }
@@ -165,7 +217,7 @@ class Tabulator {
    * then arrange the tabs they won into the recursive GroupNode hierarchy, with
    * us returning the root node.
    */
-  tabulate(tabs) {
+  tabulate(normTabs) {
     // - Bid!
     // Keys are Arrangers, values are lists of tabs.
     let assignments = new Map();
@@ -173,11 +225,11 @@ class Tabulator {
       assignments.set(arranger, []);
     }
 
-    for (let tab of tabs) {
+    for (let normTab of normTabs) {
       let highBid = null;
       let useArranger = null;
       for (let arranger of this.arrangers) {
-        let bid = arranger.bidForTab(tab);
+        let bid = arranger.bidForTab(normTab);
         if (!bid) {
           continue;
         }
@@ -188,10 +240,10 @@ class Tabulator {
         }
       }
       if (!useArranger) {
-        throw new Error('no one bid on tab:' + tab.id);
+        throw new Error('no one bid on tab:' + normTab.suid);
       }
 
-      assignments.get(useArranger).push(tab);
+      assignments.get(useArranger).push(normTab);
     }
 
     // - Arrange!

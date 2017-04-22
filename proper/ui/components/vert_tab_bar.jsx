@@ -1,13 +1,15 @@
-const React = window.React = require('react');
-const PureRenderMixin = require('react-addons-pure-render-mixin');
+const GroupComponent = require('./group_component');
 
-const VertTabBar = React.createClass({
-  mixins: [PureRenderMixin],
+const varyByGroup = require('./vary_by_group');
 
-  render: function() {
-    const normTabs = Array.from(this.props.normTabsById.values());
-    return <pre>{ JSON.stringify(normTabs, null, 2) }</pre>;
+class VertTabBar extends GroupComponent {
+  render() {
+    const group = this.props.group;
+
+    const childGroups = varyByGroup.mapAll(group.children);
+
+    return <div className='VertTabBar'>{ childGroups }</div>;
   }
-});
+}
 
 module.exports = VertTabBar;

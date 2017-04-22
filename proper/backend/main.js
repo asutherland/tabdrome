@@ -8,8 +8,13 @@ const TabTracker = require('./tab_tracker');
 const Tabulator = require('./tabulator');
 const ClientBridgeBackend = require('./client_bridge_backend');
 
+//const SiteHierarchyArranger = require('./arrangers/site_hierarchy');
+const SessionArranger = require('./arrangers/session');
+
 const clientBridge = new ClientBridgeBackend();
-const tabulator = new Tabulator();
+const tabulator = new Tabulator({
+  arrangers: [new SessionArranger()]
+});
 window.tracker = new TabTracker({
   onWindowTabChanges: (windowId, windowNormTabsById) => {
     const rootGroup = tabulator.tabulate(windowNormTabsById);

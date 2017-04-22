@@ -1,7 +1,3 @@
-function serializeMap(map) {
-  return Array.from(map.entries());
-}
-
 /**
  * Listens for connections from clients
  */
@@ -12,19 +8,21 @@ class ClientBridgeBackend {
      * map to our clientMeta structure.
      */
     this.clientsByWindowId = new Map();
-    this.latchedNormTabsByWindowId = new Map();
+    /**
+     * The tabulated root group for each window.
+     */
+    this.rootGroupsByWindowId = new Map();
 
     chrome.runtime.onConnect.addListener(this._onConnect.bind(this));
   }
 
   _sendWindowState(windowId) {
-    let windowNormTabsById = this.latchedNormTabsByWindowId.get(windowId) ||
-                             new Map();
+    let rootGroup = this.rootGroupsByWindowId.get(windowId) || new Map();
     let clientMeta = this.clientsByWindowId.get(windowId);
     if (clientMeta) {
-      console.log('sending tab data for', windowId, windowNormTabsById);
+      console.log('sending tab data for', windowId, rootGroup);
       clientMeta.port.postMessage({
-        normTabsById: serializeMap(windowNormTabsById)
+        rootGroup: rootGroup
       });
     }
   }
@@ -53,8 +51,8 @@ class ClientBridgeBackend {
     this._sendWindowState(windowId);
   }
 
-  onWindowTabChanges(windowId, windowNormTabsById) {
-    this.latchedNormTabsByWindowId.set(windowId, windowNormTabsById);
+  onWindowTabChanges(windowId, hierNodes) {
+    this.rootGroupsByWindowId.set(windowId, hierNodes);
     this._sendWindowState(windowId);
   }
 }

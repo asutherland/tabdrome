@@ -48,7 +48,7 @@ class SiteHierarchyArranger {
       for (let crumb of breadcrumbs) {
         node = node.getOrCreateGroup(
           {
-            text: crumb.text
+            text: crumb.text || normTab.title
           },
           {
             //
@@ -57,7 +57,7 @@ class SiteHierarchyArranger {
             // In the event non-breadcrumbs get binned in with us in the future,
             // let them happen before us to avoid ambiguity.
             sortGroup: 'custom-after',
-            sortKey: crumb.text || normTab.title,
+            sortChildrenBy: 'text',
             serial: normTab.serial
           });
       }
@@ -67,17 +67,6 @@ class SiteHierarchyArranger {
         console.warn('duplicate tab? group:', node, 'tab:', normTab);
       }
       node.props.tab = normTab;
-
-      let lastCrumb = breadcrumbs.slice(-1)[0] || null;
-
-      node.getOrCreateGroup(
-        normTab,
-        {
-          // (this is what we will get sorted by!)
-          text: lastCrumb.text || normTab.title,
-          // it's possible for breadcrumbs to live under us too!
-          sortChildrenBy: 'text'
-        });
     }
   }
 }

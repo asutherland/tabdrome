@@ -102,7 +102,9 @@ function sortChildren(props, children) {
  */
 class GroupNode {
   constructor(rootNode, groupRelId, definingProps, extraProps, weakProps) {
-    this.rootNode = rootNode;
+    // Treat null rootNode as if `this` was passed because RootNode can't use
+    // `this` in its call to super.
+    this.rootNode = rootNode || this;
     this.groupRelId = groupRelId;
     this.children = [];
     this.props = Object.assign({}, definingProps, extraProps);
@@ -137,7 +139,7 @@ class GroupNode {
     // - Try and find the existing kid.
     for (let kid of this.children) {
       let matched = true;
-      for (let key of definingProps) {
+      for (let key in definingProps) {
         if (kid.props[key] !== definingProps[key]) {
           matched = false;
           break;
@@ -149,12 +151,13 @@ class GroupNode {
     }
 
     let groupRelId = '';
-    for (let key of definingProps) {
+    for (let key in definingProps) {
       groupRelId += '!' + key + '=' + definingProps[key];
     }
 
     // - Nope, gotta create a new kid.
-    let kid = new GroupNode(this.rootNode, definingProps, extraProps, weakProps);
+    let kid = new GroupNode(this.rootNode, groupRelId, definingProps,
+                            extraProps, weakProps);
     this.children.push(kid);
     return kid;
   }
@@ -192,7 +195,7 @@ class GroupNode {
  */
 class RootNode extends GroupNode {
   constructor() {
-    super(this, null, { sortChildrenBy: '$root' });
+    super(null, '!root', {}, { sortChildrenBy: '$root' });
   }
 }
 
@@ -225,7 +228,7 @@ class Tabulator {
       assignments.set(arranger, []);
     }
 
-    for (let normTab of normTabs) {
+    for (let normTab of normTabs.values()) {
       let highBid = null;
       let useArranger = null;
       for (let arranger of this.arrangers) {

@@ -1,45 +1,49 @@
 const React = window.React = require('react');
 const ReactDOM = window.ReactDOM = require('react-dom');
-const PureRenderMixin = require('react-addons-pure-render-mixin');
 
 const ClientBridgeFrontend = require('./client_bridge_frontend');
 
 const VertTabBar = require('./components/vert_tab_bar');
 
-const App = React.createClass({
-  mixins: [PureRenderMixin],
-
-  getInitialState: function() {
-    return {
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
       clientBridge: null,
-      normTabsById: new Map()
+      rootGroup: null
     };
-  },
+  }
 
-  componentWillMount: function() {
+  componentWillMount() {
     const clientBridge = new ClientBridgeFrontend({
-      onUpdate: this.onUpdate
+      onUpdate: (rootGroup) => { this.onUpdate(rootGroup); }
     });
     this.setState({
       clientBridge
     });
-  },
+  }
 
-  onUpdate: function(normTabsById) {
-    console.log('got new state!', normTabsById);
+  onUpdate(rootGroup) {
+    console.log('got new state!', rootGroup);
     this.setState({
-      normTabsById
+      rootGroup
     });
-  },
+  }
 
-  render: function() {
+  render() {
+    let rootGroup = this.state.rootGroup;
+
+    if (!rootGroup) {
+      return <div></div>;
+    }
+
     return (
       <div>
-        <VertTabBar normTabsById={ this.state.normTabsById } />
+        <VertTabBar group={ rootGroup } />
       </div>
     );
   }
-});
+}
 
 ReactDOM.render(
   <App />,

@@ -1,0 +1,42 @@
+/* Yeah, styling is currently just normal CSS. */
+
+:root {
+  --bg-color: #ddd;
+  --selected-bg-color: #dad;
+  --hover-bg-color: #d8d;
+  --active-bg-color: #dad;
+
+  --border-color: #aaa;
+  --selected-border-color: #a6a;
+  --hover-border-color: #a7a;
+  --active-border-color: #a8a;
+
+  --text-color: #000;
+  --selected-text-color: #fff;
+  --hover-text-color: #202;
+  --active-text-color: #303;
+}
+
+.VertTabBar {
+
+}
+
+.DomainGroup {
+
+}
+.DomainGroup-domain {
+
+}
+
+.BreadcrumbGroup {
+
+}
+.BreadcrumbGroup-crumb {
+
+}
+
+.SimpleTab {
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}

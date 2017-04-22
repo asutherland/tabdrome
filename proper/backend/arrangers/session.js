@@ -30,12 +30,13 @@ class SessionArranger {
         {
           // nothing special, we're just a tab.
           type: 'tab',
-          tab: normTab
+          tabSuid: normTab.suid
         },
         {
           rootSortGroup: normTab.pinned ? 'pinned' : 'normal',
           rootSortKey: normTab.index,
-          serial: normTab.serial
+          serial: normTab.serial,
+          tab: normTab
         });
     }
   }

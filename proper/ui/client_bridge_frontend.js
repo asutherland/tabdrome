@@ -1,7 +1,3 @@
-function deserializeMap(serialized) {
-  return new Map(serialized);
-}
-
 /**
  * Listens for connections from clients
  */
@@ -14,9 +10,9 @@ class ClientBridgeFrontend {
   }
 
   _onMessage(msg) {
-    let normTabsById = deserializeMap(msg.normTabsById);
-    console.log('got message', normTabsById);
-    this._onUpdate(normTabsById);
+    let rootGroup = msg.rootGroup;
+    console.log('got message', rootGroup);
+    this._onUpdate(rootGroup);
   }
 }
 

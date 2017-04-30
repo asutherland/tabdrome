@@ -52,17 +52,21 @@ as controlled by the arrangers.
   downstream code to more efficiently tell if something changed, and for
   deterministic aggregates to use Math.max() over the serials of their
   constituent parts in order to accurately convey if they (may) have changed.
-  (The aggregates can of course do fancier things.)
+  Note that since tabs can be removed, aggregates will need to also consume the
+  `globalSerial` and/or do fancier things like hash on the contents of the
+  aggregates.
 
 - createdTS: The milliseconds-since-epoch timestamp at which the tab was
   believed to have been created.  You would use this if you wanted to order tabs
   by when they were created.
 
-- windowId: The standard chrome.tabs value.
+- windowId: The standard chrome.tabs value.  In Firefox this is the outer window
+  id which means it does not change on navigation.  (The outer window
+  corresponds to the WindowProxy in cross-rowser/spec parlance.)
 
 - index: The standard chrome.tabs value indicated the tab's position index
   within the window it lives in.  This may cease to have meaning if we aren't
-  updating this field.
+  updating this field.  NOTE: Firefox
 
 - openerTabId: The standard chrome.tabs value, which currently is not provided
   by Gecko.

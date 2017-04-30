@@ -1,3 +1,4 @@
+const murmurHash3 = require('./utils/mhash3');
 
 /**
  * Make a sorting comparator that uses two keys, the first of which is indexed
@@ -169,16 +170,29 @@ class GroupNode {
    */
   __serialize() {
     const sortedKids = sortChildren(this.props, this.children);
-    let maxSerial = this.props.serial || 0;
+
+    let maxSerial = 0;
+    let aggrString = '';
     const serializedKids = sortedKids.map(x => {
       const serialized = x.__serialize();
       maxSerial = Math.max(maxSerial, serialized.serial || 0);
+      aggrString += '|' + serialized.groupRelId;
       return serialized;
     });
 
     return {
       groupRelId: this.groupRelId,
-      serial: maxSerial,
+      // If an explicit serial was provided, use that.  In the cast of the
+      // rootNode, this will be the globalSerial.
+      serial: this.props.serial || maxSerial,
+      // We compute a hash over our contents as well to deal with the removal
+      // of children.  This is necessary for aggregates where the only change
+      // in their subtree is the removal of a node.  In that case, their derived
+      // max serial will not change, so the content hash is necessary.
+      // Alternately, some type of tombstone mechanism and/or persistent state
+      // tracking for the aggregates would be required.  (However, for sanity,
+      // we've opted for the tabulator's logic to be stateless.)
+      hash: murmurHash3(aggrString, 43),
       // Rename from props to nodeProps to avoid confusion as this possibly
       // crosses into React-space where "props" has pretty clear semantics.  UI
       // may still spread these into acutal props, but better for that to be an
@@ -194,8 +208,8 @@ class GroupNode {
  * our special root comparator.
  */
 class RootNode extends GroupNode {
-  constructor() {
-    super(null, '!root', {}, { sortChildrenBy: '$root' });
+  constructor(globalSerial) {
+    super(null, '!root', {}, { sortChildrenBy: '$root', serial: globalSerial });
   }
 }
 
@@ -220,7 +234,7 @@ class Tabulator {
    * then arrange the tabs they won into the recursive GroupNode hierarchy, with
    * us returning the root node.
    */
-  tabulate(normTabs) {
+  tabulate(normTabs, globalSerial) {
     // - Bid!
     // Keys are Arrangers, values are lists of tabs.
     let assignments = new Map();
@@ -250,7 +264,7 @@ class Tabulator {
     }
 
     // - Arrange!
-    let root = new RootNode();
+    let root = new RootNode(globalSerial);
     for (let [arranger, assignedTabs] of assignments) {
       if (assignedTabs.length) {
         arranger.arrangeTabs(assignedTabs, root);

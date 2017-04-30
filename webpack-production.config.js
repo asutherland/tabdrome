@@ -1,7 +1,6 @@
 var webpack = require('webpack');
 var path = require('path');
 var buildPath = path.resolve(__dirname, 'build');
-var nodeModulesPath = path.resolve(__dirname, 'node_modules');
 var TransferWebpackPlugin = require('transfer-webpack-plugin');
 
 var config = {
@@ -11,13 +10,13 @@ var config = {
     // The backend logic that lives in a background page and the JS is directly
     // loaded as defined in static/manifest.json without any HTML page involved.
     'backend-main': path.resolve(__dirname, 'proper/backend/main.js'),
+    // Content scripts: currently just the one.
+    'content-digger':
+      path.resolve(__dirname, 'proper/content_scripts/simple_query_digger.js'),
   },
   resolve: {
-    root: [
-    ],
-    extensions: ['', '.js', '.jsx'],
-    alias: {
-    }
+    alias: {},
+    extensions: ['.js', '.jsx']
   },
   //Render source-map file for final build
   devtool: 'source-map',
@@ -28,7 +27,7 @@ var config = {
   },
   plugins: [
     // Keep going on errors.
-    new webpack.NoErrorsPlugin(),
+    new webpack.NoEmitOnErrorsPlugin(),
     // Migrate static stuff into build.
     new TransferWebpackPlugin([
       { from: 'static', to: '' }
@@ -40,13 +39,11 @@ var config = {
     })
   ],
   module: {
-    preLoaders: [
-    ],
-    loaders: [
+    rules: [
       {
-        test: /\.(jsx)$/,
-        loaders: ['babel'],
-        exclude: [nodeModulesPath]
+        test: /\.jsx$/,
+        exclude: /node_modules/,
+        loader: 'babel-loader'
       }
     ]
   }

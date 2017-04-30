@@ -1,12 +1,18 @@
 /**
- * Listens for connections from clients
+ * Establishes a connection with the back-end, automatically subscribing to
+ * updates for the current window.  The provided onUpdate method is invoked when
+ * updates occuring, including an initial compulsory onUpdate once the
+ * connection has been established.
  */
 class ClientBridgeFrontend {
   constructor({ onUpdate }) {
     this._onUpdate = onUpdate;
 
-    this.port = chrome.runtime.connect();
-    this.port.onMessage.addListener(this._onMessage.bind(this));
+    browser.windows.getCurrent().then((windowInfo) => {
+      this.port =
+        chrome.runtime.connect({ name: `ui-bridge:${windowInfo.id}` });
+      this.port.onMessage.addListener(this._onMessage.bind(this));
+    });
   }
 
   _onMessage(msg) {

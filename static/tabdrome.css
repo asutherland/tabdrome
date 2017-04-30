@@ -1,5 +1,13 @@
 /* Yeah, styling is currently just normal CSS. */
 
+/*
+ * Variables are currently used as static #define type values.  We do not use
+ * them as independent mix-ins.  That is, when something becomes active, we
+ * could either have a class that explicitly calls out "--active-color" or we
+ * could have a selector that overwrites "--color".
+ *
+ * This is a weakly held choice.
+ */
 :root {
   --bg-color: #ddd;
   --selected-bg-color: #dad;
@@ -39,4 +47,10 @@
   background-color: var(--bg-color);
   border: 1px solid var(--border-color);
   color: var(--text-color);
+}
+
+.SimpleTab.ActiveTab {
+  background-color: var(--selected-bg-color);
+  border: 1px solid var(--selected-border-color);
+  color: var(--selected-text-color);
 }

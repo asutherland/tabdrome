@@ -14,8 +14,9 @@
  * and process data from content scripts in one place.
  */
 class TabTracker {
-  constructor({ onWindowTabChanges }) {
+  constructor({ initHelpers, onWindowTabChanges, onWindowRemoved }) {
     this._notifyWindowTabChanges = onWindowTabChanges;
+    this._notifyWindowRemoved = onWindowRemoved;
 
     /**
      * Normalized tabs keyed by their browser-allocated id.
@@ -27,7 +28,7 @@ class TabTracker {
      * window. Note that the ordering of the contents of the set is an emergent
      * thing that we don't care about.
      */
-    this.normTabsByWindow = new Map();
+    this.perWindowInfo = new Map();
 
     // Simple batching mechanism using setTimeout to avoid pathological
     // performance in bulk manipulations like session restores, closing
@@ -35,23 +36,39 @@ class TabTracker {
     this._dirtyWindowTimer = 0;
     this._dirtyWindows = new Set();
 
-    chrome.tabs.query({}, (tabs) => {
+    // The monotonic clock that moves forward every time anything happens.  This
+    // is the value stamped on tabs in the most recent set of changes.  In the
+    // case of tab removals, however, there will be no tab hanging around with
+    // the serial.
+    this.globalSerial = 0;
+
+    // Because of our communication flow, there are inherently some circular
+    // dependencies between us and our helpers.  In the interest of letting the
+    // factory that sets everything up do all the wiring and avoiding us
+    // assigning ourselves into helpers via non-obvious API, we have this helper
+    // method.
+    const helpers = initHelpers(this);
+    this.contentScriptCoordinator = helpers.contentScriptCoordinator;
+    this.contentDigger = helpers.contentDigger;
+    this.contextSearcher = helpers.contextSearcher;
+
+    browser.tabs.query({}).then((tabs) => {
       for (let tab of tabs) {
         this.onCreated(tab);
       }
       this._listenForEvents();
     });
-
-    this.globalSerial = 0;
-
-    chrome.runtime.onMessage.addListener(this.onMessage.bind(this));
   }
 
   _listenForEvents() {
-    // Note that we don't need onActivated since onUpdated will be invoked.
-    chrome.tabs.onCreated.addListener(this.onCreated.bind(this));
-    chrome.tabs.onUpdated.addListener(this.onUpdated.bind(this));
-    chrome.tabs.onRemoved.addListener(this.onRemoved.bind(this));
+    browser.tabs.onCreated.addListener(this.onCreated.bind(this));
+    browser.tabs.onUpdated.addListener(this.onUpdated.bind(this));
+    // We need onActivated because onUpdated may not fire when tabs are
+    // switching.
+    browser.tabs.onActivated.addListener(this.onActivated.bind(this));
+    browser.tabs.onRemoved.addListener(this.onRemoved.bind(this));
+
+    browser.windows.onRemoved.addListener(this.onWindowRemoved.bind(this));
   }
 
   _reportDirtyWindow(windowId) {
@@ -87,20 +104,23 @@ class TabTracker {
     };
   }
 
-  _getOrCreateWindowTabs(windowId) {
-    let tabs = this.normTabsByWindow.get(windowId);
-    if (!tabs) {
-      tabs = new Map();
-      this.normTabsByWindow.set(windowId, tabs);
+  _getOrCreateWindowInfo(windowId) {
+    let winInfo = this.perWindowInfo.get(windowId);
+    if (!winInfo) {
+      winInfo = {
+        activeTabId: null,
+        tabs: new Map()
+      };
+      this.perWindowInfo.set(windowId, winInfo);
     }
-    return tabs;
+    return winInfo;
   }
 
   _learnAboutBrowserTab(tab) {
     let normTab = {
       id: tab.id,
       suid: '!' + tab.id,
-      serial: this.globalSerial++,
+      serial: ++this.globalSerial,
       createdTS: Date.now(),
       windowId: tab.windowId,
       index: tab.index,
@@ -114,12 +134,22 @@ class TabTracker {
       incognito: tab.incognito,
       width: tab.width,
       height: tab.height,
-      fromContent: {}
+      fromContent: null // or Map()
     };
 
     this.normTabsById.set(normTab.id, normTab);
-    this._getOrCreateWindowTabs(normTab.windowId).set(normTab.id, normTab);
+
+    const winInfo = this._getOrCreateWindowInfo(normTab.windowId);
+    winInfo.tabs.set(normTab.id, normTab);
+    // We don't get a synthetic activate event, so we need to populate this when
+    // we see the tab if one isn't already known.
+    if (normTab.active && winInfo.activeTabId === null) {
+      winInfo.activeTabId = normTab.id;
+    }
+
     this._reportDirtyWindow(normTab.windowId);
+
+    return normTab;
   }
 
   _updateNormTabWithTab(normTab, tab) {
@@ -127,7 +157,7 @@ class TabTracker {
     // it seems reasonable to trust the upstream event generating logic to be
     // sufficiently competent that it's not just spamming us nonstop with BS
     // events.
-    normTab.serial = this.globalSerial++;
+    normTab.serial = ++this.globalSerial;
     // by definition not allowed to change: id
     // by definition not allowed to change at this time: suid.  (In the future
     // if we're getting clever about inferring session restores if they're not
@@ -152,27 +182,32 @@ class TabTracker {
     if (!normTab) {
       // It's possible to get an update event before the creation event.  In
       // that case, just leave it to the create event.
-      return;
+      return null;
     }
     if (normTab.windowId !== tab.windowId) {
-      let oldWindowTabs = this._getOrCreateWindowTabs(normTab.windowId);
-      let newWindowTabs = this._getOrCreateWindowTabs(tab.windowId);
-      oldWindowTabs.delete(normTab.id);
-      newWindowTabs.set(normTab.id, normTab);
+      let { tabs: oldWinTabs } = this._getOrCreateWindowInfo(normTab.windowId);
+      let { tabs: newWinTabs } = this._getOrCreateWindowInfo(tab.windowId);
+      oldWinTabs.delete(normTab.id);
+      newWinTabs.set(normTab.id, normTab);
       this._reportDirtyWindow(normTab.windowId);
     }
     this._updateNormTabWithTab(normTab, tab);
     this._reportDirtyWindow(normTab.windowId);
+    return normTab;
   }
 
   _deletedTab(tabId) {
-    this.globalSerial++;
+    this.globalSerial += 1;
     let normTab = this._getNormTabOrExplode(tabId);
     this._reportDirtyWindow(normTab.windowId);
-    // XXX we need to explicitly understand windows going away.
-    let windowTabs = this._getOrCreateWindowTabs(normTab.windowId);
-    windowTabs.delete(tabId);
     this.normTabsById.delete(tabId);
+
+    // Cleanup the window tracking of the tab if we haven't already deleted the
+    // window.
+    let windowTabs = this.normTabsByWindow.get(normTab.windowId);
+    if (windowTabs) {
+      windowTabs.delete(tabId);
+    }
   }
 
   /**
@@ -189,38 +224,58 @@ class TabTracker {
   }
 
   /**
-   * Process messages from content scripts.
-   */
-  onMessage(message, sender) {
-    if (!sender.tab) {
-      return;
-    }
-
-    let normTab = this._getNormTabOrExplode(sender.tab.id);
-    for (let key of Object.keys(message)) {
-      normTab.fromContent[key] = message[key];
-    }
-    this._reportDirtyWindow(normTab.windowId);
-  }
-
-  /**
    * We can get updates before creations, and in practice the difference does
    * not matter.
    */
   onCreated(tab) {
     console.log('onCreated', tab.id);
-    this._learnAboutBrowserTab(tab);
+    const normTab = this._learnAboutBrowserTab(tab);
+    this.contentDigger.digUpdatedTab(normTab);
   }
 
   onUpdated(tabId, changeInfo, tab) {
-    console.log('onUpdate', tabId);
-    this._processTabUpdate(tab);
+    console.log('onUpdate', tabId, changeInfo);
+    const normTab = this._processTabUpdate(tab);
+    if (normTab) {
+      // (the create event didn't happen yet, it will handle the dig.)
+      this.contentDigger.digUpdatedTab(normTab);
+    }
+  }
+
+  onActivated({ tabId, windowId }) {
+    console.log('onActivated', tabId, windowId);
+    const winInfo = this.perWindowInfo.get(windowId);
+    if (!winInfo) {
+      return;
+    }
+
+    const serial = ++this.globalSerial;
+    if (winInfo.activeTabId !== null) {
+      const oldNormTab = winInfo.tabs.get(winInfo.activeTabId);
+
+      oldNormTab.serial = serial;
+      oldNormTab.active = false;
+    }
+    const newNormTab = winInfo.tabs.get(tabId);
+    if (newNormTab) {
+      winInfo.activeTabId = tabId;
+      newNormTab.serial = serial;
+      newNormTab.active = true;
+    }
+    this._reportDirtyWindow(windowId);
   }
 
   onRemoved(tabId/*, { windowId, isWindowClosing }*/) {
     console.log('onRemoved', tabId);
-    // XXX as noted elsewhere, we need to handle window closing better/at all.
     this._deletedTab(tabId);
+  }
+
+  onWindowRemoved(windowId) {
+    this.normTabsByWindow.delete(windowId);
+    this._dirtyWindows.delete(windowId);
+    if (this._notifyWindowRemoved) {
+      this._notifyWindowRemoved(windowId);
+    }
   }
 
   /**
@@ -230,10 +285,34 @@ class TabTracker {
    */
   _flushToTabulator() {
     for (let windowId of this._dirtyWindows) {
-      let windowNormTabs = this._getOrCreateWindowTabs(windowId);
-      this._notifyWindowTabChanges(windowId, windowNormTabs);
+      let { tabs: windowNormTabs } = this._getOrCreateWindowInfo(windowId);
+      this._notifyWindowTabChanges(windowId, windowNormTabs, this.globalSerial);
     }
     this._dirtyWindows.clear();
+  }
+
+  /**
+   * Setter for fromContent payloads that handles initialization and dirtying
+   * things so updates are appropriately propagated.  If you want to delete a
+   * value you previously set, pass a value of `undefined`.
+   */
+  setDataFromContentDigger(oldNormTab, key, value) {
+    // The tab may no longer exist by the time we are called, so bail if there
+    // is no longer a tab.
+    let normTab = this.normTabsById.get(oldNormTab.id);
+    if (!normTab) {
+      return;
+    }
+
+    if (!normTab.fromContent) {
+      normTab.fromContent = new Map();
+    }
+    if (value === undefined) {
+      normTab.fromContent.delete(key);
+    } else {
+      normTab.fromContent.set(key, value);
+    }
+    this._reportDirtyWindow(normTab.windowId);
   }
 }
 

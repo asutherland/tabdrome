@@ -3,6 +3,10 @@ const React = require('react');
 /**
  * For rendering serialized groups where state changes are always accompanied by
  * a change in their `serial`.  Groups are always passed as `group`.
+ *
+ * Note that the serial property only holds for aggregate groups under removal
+ * because they are actually a hash derived from their children rather than
+ * something like max().
  */
 class GroupComponent extends React.Component {
   constructor(props) {
@@ -10,7 +14,10 @@ class GroupComponent extends React.Component {
   }
 
   shouldComponentUpdate(nextProps) {
-    return this.props.group.serial !== nextProps.group.serial;
+    const curGroup = this.props.group;
+    const nextGroup = nextProps.group;
+    return curGroup.serial !== nextGroup.serial ||
+           curGroup.has !== nextGroup.hash;
   }
 }
 

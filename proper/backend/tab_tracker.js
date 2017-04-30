@@ -204,9 +204,9 @@ class TabTracker {
 
     // Cleanup the window tracking of the tab if we haven't already deleted the
     // window.
-    let windowTabs = this.normTabsByWindow.get(normTab.windowId);
-    if (windowTabs) {
-      windowTabs.delete(tabId);
+    let winInfo = this.perWindowInfo.get(normTab.windowId);
+    if (winInfo) {
+      winInfo.tabs.delete(tabId);
     }
   }
 
@@ -271,7 +271,7 @@ class TabTracker {
   }
 
   onWindowRemoved(windowId) {
-    this.normTabsByWindow.delete(windowId);
+    this.perWindowInfo.delete(windowId);
     this._dirtyWindows.delete(windowId);
     if (this._notifyWindowRemoved) {
       this._notifyWindowRemoved(windowId);

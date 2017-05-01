@@ -71,6 +71,7 @@ html, body {
   color: var(--text-color);
   padding: 2px;
   margin-bottom: 1px;
+  margin-right: 4px;
   cursor: pointer;
 }
 .BreadcrumbGroup-tabCrumb.ActiveTab {
@@ -91,6 +92,7 @@ html, body {
   color: var(--text-color);
   padding: 2px;
   margin-bottom: 1px;
+  margin-right: 4px;
   cursor: pointer;
 }
 .BreadcrumbGroup-titleOnlyCrumb {

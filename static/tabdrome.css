@@ -70,6 +70,7 @@ html, body {
   border: 1px solid var(--tab-border-color);
   color: var(--text-color);
   padding: 2px;
+  margin-left: 2px;
   margin-bottom: 1px;
   margin-right: 4px;
   cursor: pointer;
@@ -79,7 +80,7 @@ html, body {
   border: 1px solid var(--selected-border-color);
   color: var(--selected-text-color);
   border-right: 0px;
-  margin-left: 2px;
+  margin-left: 0px;
   padding-right: 8px;
   margin-right: 0px;
 }
@@ -91,6 +92,7 @@ html, body {
   border: 1px transparent;
   color: var(--text-color);
   padding: 2px;
+  margin-left: 2px;
   margin-bottom: 1px;
   margin-right: 4px;
   cursor: pointer;
@@ -99,6 +101,10 @@ html, body {
   all: unset;
   display: block;
   font: 12px sans-serif;
+  padding: 2px;
+  margin-left: 2px;
+  margin-bottom: 1px;
+  margin-right: 4px;
 }
 .BreadcrumbGroup-tabCrumb:hover, .BreadcrumbGroup-tabCrumb.ActiveTab:hover,
 .BreadcrumbGroup-potentialTabCrumb:hover {
@@ -108,8 +114,9 @@ html, body {
 }
 
 .BreadcrumbGroup-children {
+  margin-left: 3px;
   border-left: 1px solid var(--breadcrumb-line-color);
-  padding-left: 5px;
+  padding-left: 2px;
 }
 
 .SimpleTab {

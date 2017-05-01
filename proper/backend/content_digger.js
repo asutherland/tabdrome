@@ -115,7 +115,9 @@ class ContentDigger {
         normTab, shadowTab, shadowTab.constraintsByKey, stillValidKeys);
     }
 
-    this._digMissingData(normTab, shadowTab, diggers, stillValidKeys);
+    if (diggers) {
+      this._digMissingData(normTab, shadowTab, diggers, stillValidKeys);
+    }
   }
 
   _digMissingData(normTab, shadowTab, diggers, stillValidKeys) {

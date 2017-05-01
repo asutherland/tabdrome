@@ -66,6 +66,7 @@ class TabTracker {
     // We need onActivated because onUpdated may not fire when tabs are
     // switching.
     browser.tabs.onActivated.addListener(this.onActivated.bind(this));
+    browser.tabs.onMoved.addListener(this.onMoved.bind(this));
     browser.tabs.onRemoved.addListener(this.onRemoved.bind(this));
 
     browser.windows.onRemoved.addListener(this.onWindowRemoved.bind(this));
@@ -263,6 +264,63 @@ class TabTracker {
       newNormTab.active = true;
     }
     this._reportDirtyWindow(windowId);
+  }
+
+  /**
+   * Yuck.  The tab got moved which means all index values possibly changed.  We
+   * could re-query, but we can do this efficiently with the info available and
+   * avoid creating additional edge-cases.
+   *
+   * Assuming minIndex and maxIndex, case-wise, we have:
+   * - Tabs "below" (<) minIndex.  They are not affected because all shifts
+   *   occur "above" them.
+   * - Tabs "above" (>) maxIndex.  They are not affected because the shifts
+   *   don't ripple through to them.
+   * - Tabs between the two (>= minIndex, <= maxIndex).  They are affected.  If
+   *   (fromIndex < toIndex) then we're shifting "upwards" and tabs in the range
+   *   will be shifted "downwards" (-= 1).  If (fromIndex > toIndex) then we're
+   *   shifting "downwards" and the affected tabs will be shifted "upwards"
+   *   (+1).
+   *
+   * This seems like a reasonable enough way to think about things, let's
+   * implement that.
+   *
+   * XXX There's either a logic bug in here or (more likely, I'm thinking),
+   * we need to also trigger logic similar to this to handle when a tab is
+   * inserted/deleted in the middle of the list of tabs.  Which does seem rather
+   * likely.  However, the problem is mitigated by just causing the tab to be
+   * updated and us getting our index value updated, so, meh for now.
+   */
+  onMoved(tabId, { fromIndex, toIndex }) {
+    const movedTab = this.normTabsById.get(tabId);
+    if (!movedTab) {
+      // Tab not known yet.
+      return;
+    }
+    const winInfo = this.perWindowInfo.get(movedTab.windowId);
+    const serial = ++this.globalSerial;
+
+    const delta = (fromIndex < toIndex) ? -1 : +1;
+    const minIndex = Math.min(fromIndex, toIndex);
+    const maxIndex = Math.max(fromIndex, toIndex);
+
+    for (let normTab of winInfo.tabs.values()) {
+      if (normTab.index < minIndex) {
+        continue;
+      }
+      if (normTab.index > maxIndex) {
+        continue;
+      }
+
+      normTab.serial = serial;
+      if (normTab === movedTab) {
+        normTab.index = toIndex;
+      } else {
+        normTab.index += delta;
+      }
+    }
+
+    this._reportDirtyWindow(movedTab.windowId);
   }
 
   onRemoved(tabId/*, { windowId, isWindowClosing }*/) {

@@ -111,7 +111,8 @@ class ContentDigger {
       shadowTab = { constraintsByKey: new Map() };
       this.shadowTabs.set(normTab, shadowTab);
     } else {
-      this._purgeViolatingData(normTab, shadowTab, shadowTab.stillValidKeys);
+      this._purgeViolatingData(
+        normTab, shadowTab, shadowTab.constraintsByKey, stillValidKeys);
     }
 
     this._digMissingData(normTab, shadowTab, diggers, stillValidKeys);

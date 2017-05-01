@@ -14,7 +14,7 @@ const RDFa_DIGGER_SPECS = {
         fallbackAction: 'constant',
         fallbackValue: null
       },
-      label: {
+      title: {
         selector: '[property="v:title"]',
         extract: 'text',
         fallbackAction: 'use-self',

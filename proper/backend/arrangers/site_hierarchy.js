@@ -19,14 +19,15 @@ class SiteHierarchyArranger {
     // breadrumb-providers aren't baked into our own extension.)
     //
     // Some other bid (like a user session with intent) could outbid this.
-    if (normTab.fromContent.breadcrumbs) {
+    if (normTab.fromContent &&
+        normTab.fromContent.has('breadcrumbs')) {
       return 'extension-implies-intent';
     }
 
     return null;
   }
 
-  arrangeTab(normTabs, root) {
+  arrangeTabs(normTabs, root) {
     // (we will only get tabs we bid for)
     for (let normTab of normTabs) {
       let node = root.getOrCreateGroup(
@@ -44,11 +45,11 @@ class SiteHierarchyArranger {
           // as a parent, our serial is derived from our children exclusively
         });
 
-      let breadcrumbs = normTab.fromContent.breadcrumbs;
+      let breadcrumbs = normTab.fromContent.get('breadcrumbs');
       for (let crumb of breadcrumbs) {
         node = node.getOrCreateGroup(
           {
-            text: crumb.text || normTab.title
+            text: crumb.title || normTab.title
           },
           {
             //

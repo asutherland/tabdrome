@@ -32,7 +32,7 @@ class SimpleTab extends GroupComponent {
     if (normTab.active) {
       classes += ' ActiveTab';
     }
-    return <div className={ classes } onClick={ this.handleClick}>
+    return <div className={ classes } onClick={ this.handleClick }>
       { normTab.title }
     </div>;
   }

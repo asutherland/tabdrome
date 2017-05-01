@@ -9,12 +9,16 @@
  * This is a weakly held choice.
  */
 :root {
-  --bg-color: #ddd;
+  --tab-bg-color: #ddd;
+  --potential-tab-bg-color: #e8e8e8;
+  --group-bg-color: #f8f8f8;
   --selected-bg-color: #dad;
   --hover-bg-color: #d8d;
   --active-bg-color: #dad;
 
-  --border-color: #aaa;
+  --tab-border-color: #aaa;
+  --group-border-color: #ccc;
+  --breadcrumb-line-color: #f0f0f0;
   --selected-border-color: #a6a;
   --hover-border-color: #a7a;
   --active-border-color: #a8a;
@@ -37,22 +41,78 @@ html, body {
 }
 
 .DomainGroup {
-
+  background-color: var(--group-bg-color);
+  border: 1px solid var(--group-border-color);
+  border-right: 0;
+  color: var(--text-color);
+  margin-left: 4px;
+  margin-bottom: 1px;
+  padding-left: 2px;
+  overflow: hidden;
 }
 .DomainGroup-domain {
-
+  all: unset;
+  display: block;
+  font: 12px sans-serif;
+  font-weight: bold;
+  padding: 2px;
 }
 
 .BreadcrumbGroup {
-
 }
-.BreadcrumbGroup-crumb {
+.BreadcrumbGroup-baseCrumb {
+}
+.BreadcrumbGroup-tabCrumb {
+  all: unset;
+  display: block;
+  font: 12px sans-serif;
+  background-color: var(--tab-bg-color);
+  border: 1px solid var(--tab-border-color);
+  color: var(--text-color);
+  padding: 2px;
+  margin-bottom: 1px;
+  cursor: pointer;
+}
+.BreadcrumbGroup-tabCrumb.ActiveTab {
+  background-color: var(--selected-bg-color);
+  border: 1px solid var(--selected-border-color);
+  color: var(--selected-text-color);
+  border-right: 0px;
+  margin-left: 2px;
+  padding-right: 8px;
+  margin-right: 0px;
+}
+.BreadcrumbGroup-potentialTabCrumb {
+  all: unset;
+  display: block;
+  font: 12px sans-serif;
+  background-color: var(--potential-tab-bg-color);
+  border: 1px transparent;
+  color: var(--text-color);
+  padding: 2px;
+  margin-bottom: 1px;
+  cursor: pointer;
+}
+.BreadcrumbGroup-titleOnlyCrumb {
+  all: unset;
+  display: block;
+  font: 12px sans-serif;
+}
+.BreadcrumbGroup-tabCrumb:hover, .BreadcrumbGroup-tabCrumb.ActiveTab:hover,
+.BreadcrumbGroup-potentialTabCrumb:hover {
+  background-color: var(--hover-bg-color);
+  border-color: var(--hover-border-color);
+  color: var(--hover-text-color);
+}
 
+.BreadcrumbGroup-children {
+  border-left: 1px solid var(--breadcrumb-line-color);
+  padding-left: 5px;
 }
 
 .SimpleTab {
-  background-color: var(--bg-color);
-  border: 1px solid var(--border-color);
+  background-color: var(--tab-bg-color);
+  border: 1px solid var(--tab-border-color);
   color: var(--text-color);
   margin-left: 4px;
   margin-bottom: 1px;

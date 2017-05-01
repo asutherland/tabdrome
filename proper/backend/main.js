@@ -13,12 +13,15 @@ const ContentScriptCoordinator = require('./content_script_coordinator');
 const ContentDigger = require('./content_digger');
 const ContextSearcher = require('./context_searcher');
 
-//const SiteHierarchyArranger = require('./arrangers/site_hierarchy');
+const SiteHierarchyArranger = require('./arrangers/site_hierarchy');
 const SessionArranger = require('./arrangers/session');
 
 const clientBridge = new ClientBridgeBackend();
 const tabulator = new Tabulator({
-  arrangers: [new SessionArranger()]
+  arrangers: [
+    new SiteHierarchyArranger(),
+    new SessionArranger()
+  ]
 });
 
 // We're trying to make the hook-ups between things explicit to aid in testing

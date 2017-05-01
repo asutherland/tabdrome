@@ -6,7 +6,7 @@ class DomainGroup extends GroupComponent {
     const group = this.props.group;
     const nodeProps = group.nodeProps;
 
-    const childGroups = varyByGroup(group.children);
+    const childGroups = varyByGroup.mapAll(group.children);
     return (
       <section className='DomainGroup'>
         <h4 className='DomainGroup-domain'>{ nodeProps.domain }</h4>

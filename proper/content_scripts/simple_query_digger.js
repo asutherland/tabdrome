@@ -1,4 +1,17 @@
 /**
+ * Check whether this script has been evaluated previously.  I'm not going to
+ * lie to you, I haven't done the full diligence on understanding what our
+ * global is in here and whether xray wrappers have expandos.  A very brief
+ * investigation suggests that either "window" is a wrapper and wrappers can
+ * have their own expandos (yay!), or "window" is our scope.  Specifically, the
+ * devtools don't see "simpleQueryLoaded" on the window for a window where I
+ * know the thing got loaded.
+ *
+ * TODO: make this less ugly.  This can mean just updating the comment with one
+ * that understands what's going on.
+ */
+if (!window.simpleQueryLoaded) {
+/**
  * Simple querySelector based data extraction.  The goal is for the query
  * mechanism to be so limited that it cannot be used to produce results that
  * exfiltrate data from a user's session.
@@ -18,7 +31,7 @@
  * use-case and obvious to the user as part of the side-effect of whatever
  * extension is using the functionality in question.)
  */
-function runSimpleQuery(spec) {
+const runSimpleQuery = function(spec) {
   let container = document.querySelector(spec.containerSelector);
   if (!container) {
     return null;
@@ -51,7 +64,7 @@ function runSimpleQuery(spec) {
             throw new Error('Shoulda read the docs.');
         }
       }
-      
+
       if (extract === 'href') {
         value = valueNode.href;
       } else {
@@ -61,7 +74,7 @@ function runSimpleQuery(spec) {
     }
     return result;
   });
-}
+};
 
 browser.runtime.onMessage.addListener(function(msg) {
   if (msg.type !== 'dig') {
@@ -84,3 +97,6 @@ browser.runtime.onMessage.addListener(function(msg) {
     err
   });
 });
+
+window.simpleQueryLoaded = true;
+}

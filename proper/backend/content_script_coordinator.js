@@ -1,3 +1,20 @@
+
+/**
+ * How long should the eviction timer wait before running an eviction pass if
+ * the map does not become completely empty before the timer fires?
+ *
+ * This can be much larger than EVICT_ANCIENT_REQUEST_OLD_ENOUGH_SECS which is
+ * the threshold we use to kill things.  Our goal is to avoid embarassing memory
+ * leaks, not be obsessively tidy.
+ */
+const EVICTION_TIMER_DELAY_SECS = 60.0;
+const MILLIS_PER_SEC = 1000;
+
+/**
+ * How many seconds before the eviction timer should
+ */
+const EVICT_ANCIENT_REQUEST_OLD_ENOUGH_SECS = 30.0;
+
 /**
  * Simple helper to ensure a given content script is loaded, send it a message,
  * and be able to wait for a response via returned Promise.
@@ -21,13 +38,64 @@ class ContentScriptCoordinator {
     this.nextId = 1;
     this.pendingRequestsById = new Map();
 
+    this._evictionTimerId = null;
+
     browser.runtime.onMessage.addListener(this.onMessage.bind(this));
+  }
+
+  /**
+   * The requests we make to content pages are not guaranteed to run for a
+   * variety of reasons.  This method sets up a timer to evict old requests that
+   * seem like they failed.
+   */
+  _maybePlanEviction() {
+    if (this._evictionTimerId) {
+      return;
+    }
+
+    this._evictionTimerId = setTimeout(
+      () => { this._performEviction();},
+      EVICTION_TIMER_DELAY_SECS * MILLIS_PER_SEC);
+  }
+
+  _performEviction() {
+    this._evictionTimerId = null;
+
+    // Anything issued before the doomStamp is doomed.  doooooooomed!
+    const doomStamp = performance.now() - EVICT_ANCIENT_REQUEST_OLD_ENOUGH_SECS;
+    for (let [id, { issued }] of this.pendingRequestsById) {
+      if (issued < doomStamp) {
+        this.pendingRequestsById.delete(id);
+      }
+    }
+
+    // There may still be entries in here that haven't timed out yet, so
+    // reschedule eviction.  They'll cancel if they all complete.
+    if (this.pendingRequestsById.size > 0) {
+      this._maybePlanEviction();
+    }
+  }
+
+  /**
+   * Something got deleted from this.pendingRequestsById, maybe we can cancel
+   * the timer and we a good citizen as it relates to wake-ups.
+   */
+  _maybeCancelEviction() {
+    if (this.pendingRequestsById.size === 0 && this._evictionTimerId) {
+      clearTimeout(this._evictionTimerId);
+      this._evictionTimerId = null;
+    }
   }
 
   ask(normTab, scriptInfo, payload) {
     return new Promise((resolve) => {
       const id = this.nextId++;
-      this.pendingRequestsById.set(id, { scriptInfo, resolve });
+      // Use performance.now() to get a monotonic clock because Date.now() can
+      // jump around.
+      this.pendingRequestsById.set(
+        id,
+        { scriptInfo, resolve, issued: performance.now() });
+      this._maybePlanEviction();
 
       const evaluated = browser.tabs.executeScript(
         normTab.id,
@@ -35,6 +103,7 @@ class ContentScriptCoordinator {
           file: scriptInfo.file
         });
       evaluated.then(() => {
+        console.log('send CSC message id:', id);
         browser.tabs.sendMessage(
           normTab.id,
           {
@@ -50,12 +119,20 @@ class ContentScriptCoordinator {
    * Process messages from content scripts.
    */
   onMessage(message, sender) {
+    console.log('recv CSC message id:', message.id, 'has tab?', !!sender.tab);
     if (!sender.tab) {
       return;
     }
 
-    const { scriptInfo, resolve } = this.pendingRequestsById.get(message.id);
+    let pendingInfo = this.pendingRequestsById.get(message.id);
+    if (!pendingInfo) {
+      console.warn('Got a message for which we have no pending info?', message);
+      return;
+    }
     this.pendingRequestsById.delete(message.id);
+    this._maybeCancelEviction();
+
+    const { scriptInfo, resolve } = pendingInfo;
     if (message.err) {
       console.error('Content script', scriptInfo, 'reported error',
                     message.err);

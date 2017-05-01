@@ -1,19 +1,21 @@
-
 /**
  * How long should the eviction timer wait before running an eviction pass if
  * the map does not become completely empty before the timer fires?
  *
- * This can be much larger than EVICT_ANCIENT_REQUEST_OLD_ENOUGH_SECS which is
- * the threshold we use to kill things.  Our goal is to avoid embarassing memory
- * leaks, not be obsessively tidy.
+ * This should be on the order of half of EVICT_ANCIENT_REQUEST_OLD_ENOUGH_SECS
+ * because evictions now are used by upstream consumers to cancel their
+ * suppression logic.  Half-ish because the eviction timer is only scheduled if
+ * it's not already pending, so if this value is too large, the eviction may be
+ * particularly delayed depending on relative timer phase.
  */
-const EVICTION_TIMER_DELAY_SECS = 60.0;
+const EVICTION_TIMER_DELAY_SECS = 2.0;
 const MILLIS_PER_SEC = 1000;
 
 /**
- * How many seconds before the eviction timer should
+ * How many seconds before the eviction timer should reject a returned promise.
+ * This wants to be riding the boundary
  */
-const EVICT_ANCIENT_REQUEST_OLD_ENOUGH_SECS = 30.0;
+const EVICT_ANCIENT_REQUEST_OLD_ENOUGH_SECS = 5.0;
 
 /**
  * Simple helper to ensure a given content script is loaded, send it a message,
@@ -63,8 +65,9 @@ class ContentScriptCoordinator {
 
     // Anything issued before the doomStamp is doomed.  doooooooomed!
     const doomStamp = performance.now() - EVICT_ANCIENT_REQUEST_OLD_ENOUGH_SECS;
-    for (let [id, { issued }] of this.pendingRequestsById) {
+    for (let [id, { issued, reject }] of this.pendingRequestsById) {
       if (issued < doomStamp) {
+        reject('too slow');
         this.pendingRequestsById.delete(id);
       }
     }
@@ -88,13 +91,13 @@ class ContentScriptCoordinator {
   }
 
   ask(normTab, scriptInfo, payload) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const id = this.nextId++;
       // Use performance.now() to get a monotonic clock because Date.now() can
       // jump around.
       this.pendingRequestsById.set(
         id,
-        { scriptInfo, resolve, issued: performance.now() });
+        { scriptInfo, resolve, reject, issued: performance.now() });
       this._maybePlanEviction();
 
       const evaluated = browser.tabs.executeScript(

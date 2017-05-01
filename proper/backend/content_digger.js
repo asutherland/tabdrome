@@ -172,28 +172,62 @@ class ContentDigger {
    * constraint.
    */
   async _runSimpleQuery(normTab, shadowTab, key, spec) {
-    // normTab is a mutable data structure, so we if we want a constraint on the
-    // URL, we need to snapshot it before we yield control flow.
-    let latchedUrl = normTab.parsedUrl.href;
-    let result = await this.scriptCoordinator.ask(
-      normTab, simpleQueryDiggerScriptInfo, spec);
+    // Build and set the constraints now to serve as suppression of redundant
+    // invocations of this digger.  We'll clear them if the script invocation
+    // rejects.  And there is a failsafe timeout rejection, so this is safe.
+    const constraints = {
+      // note that this is not actually a key in the normTab; still unsure
+      // about whether to allow arbitrary traversal here or just use
+      // specific values.
+      url: normTab.parsedUrl.href
+    };
+    shadowTab.constraintsByKey.set(key, constraints);
+
+    let result;
+    try {
+      // We either expect a truthy result if the script succeeded, or null if
+      // something went wrong.  We treat this in-band null as retryable
+      // (clear constraints) because wacky transient stuff could have been
+      // going on with the DOM.
+      result = await this.scriptCoordinator.ask(
+        normTab, simpleQueryDiggerScriptInfo, spec);
+    } catch (ex) {
+      // The script didn't even respond, suggesting a page navigation happened.
+      // Or something weird.  Either way, we think the situation merits a retry,
+      // so we set result to null for identical handling of the in-band error
+      // result above.  (Although that error may have happened a *LOT* faster
+      // than us arriving here since right now rejection happens only for
+      // timeouts.  And plan to expand rejections to also include things like
+      // the process dying on us.)
+      result = null;
+    }
+
+    // Our success or failure no longer matter if the constraints aren't the
+    // ones we put in there.
+    if (shadowTab.constraintsByKey.get(key) !== constraints) {
+      return;
+    }
 
     if (result) {
-      let constraints = {
-        // note that this is not actually a key in the normTab; still unsure
-        // about whether to allow arbitrary traversal here or just use
-        // specific values.
-        url: latchedUrl
-      };
-
-      // The constraints may already fail to apply, in which case, bail without
-      // updating the state on the tab.
+      // Per the previous check, our constraints are still the ones tracked in
+      // the shadowTab.  So our constraints should still hold because, from our
+      // perspective, normTab cannot be updated in a way that violates our
+      // constraints without our dig method being invokes.  And our dig method
+      // will enforce constraints.  But we may change things in the future in a
+      // way that violates this invariant, or maybe I'm just wrong, so let's
+      // add a warning here.  We won't clear the constrint or values though,
+      // since the next dig will handle that.
       if (!this._constraintsMatchTab(constraints, normTab)) {
+        console.warn('constraints do not hold but they really should',
+                     constraints, normTab);
         return;
       }
 
-      shadowTab.constraintsByKey.set(key, constraints);
       this.tabTracker.setDataFromContentDigger(normTab, key, result);
+    } else {
+      // As per the `result` comments, null means this is a retryable error, so
+      // eliminate the constraints.
+      shadowTab.constraintsByKey.delete(key);
     }
   }
 }

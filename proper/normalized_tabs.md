@@ -58,7 +58,9 @@ as controlled by the arrangers.
 
 - createdTS: The milliseconds-since-epoch timestamp at which the tab was
   believed to have been created.  You would use this if you wanted to order tabs
-  by when they were created.
+  by when they were created.  No effort is made to correct for adjustments made
+  to the system clock by NTP/friends.  (Use of performance.now() for this value
+  was ruled out because 0 is not consistent between windows.)
 
 - windowId: The standard chrome.tabs value.  In Firefox this is the outer window
   id which means it does not change on navigation.  (The outer window
@@ -73,6 +75,12 @@ as controlled by the arrangers.
 
 - active: The standard chrome.tabs value indicating whether the tab is the
   active tab in its window, regardless of window state.
+
+- lastActivatedSerial: The value of `serial` when this tab's `active` value was
+  last set to true.  0 if the tab has never been active since the TabTracker
+  started up.  The value will not change until `active` becomes false and is
+  later set to `true` again.  This can be used to implement an MRU ordering of
+  tabs.
 
 - pinned: The standard chrome.tabs value indicating whether the tab is pinned
   or not.
@@ -112,6 +120,30 @@ as controlled by the arrangers.
 
 - incognito: The standard chrome.tabs value indicating private browsing /
   incognito status.
+
+- audible: Standard chrome.tabs value indicating whether the tab is trying to
+  make noise (but may be blocked by being muted.)
+
+- muted: Flattened tab.mutedInfo.muted value, is the tab muted?  The fields are
+  flattened because I'm more concerned about screwing up the traversal of an
+  optional sub-object than I am about this structure being messy.
+- mutedReason: Flattened tab.mutedInfo.reason, currently defined to be one of
+  "capture", "extension", "user".  "extension" means mutedExtensionId should be
+  set.
+- mutedExtensionId: Flattened tab.mutedInfo.extensionId.
+
+- cookieStoreId: A string like "firefox-default" or "firefox-container-4" that
+  identifies the origin suffix that identifies the cookie jar persistent storage
+  for this tab is stored in.  Feature-wise, this corresponds to Firefox's
+  contextual identities functionality.  The string  can be passed to
+  browser.contextualIdentities.get() or used in the browser.cookies API as the
+  name of a cookie store.
+
+- sessionId: A string identifier issued by the browser.sessions API when it is
+  describing a persisted tab.  Used by browser.sessions.restore() to restore a
+  tab to existence.  Not currently likely to be populated, but I was hoping
+  this might secretly leak information from Firefox's session store.  It does
+  not.
 
 - width: The standard chrome.tabs clientWidth of the frame displaying the
   contents of the tab... I think?  Gecko seems to provide it this way.

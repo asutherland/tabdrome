@@ -127,12 +127,19 @@ class TabTracker {
       index: tab.index,
       openerTabId: tab.openedTabId,
       active: tab.active,
+      lastActivatedSerial: tab.active ? this.globalSerial : 0,
       pinned: tab.pinned,
       parsedUrl: this._parseAndExpandUrl(tab.url),
       title: tab.title,
       favIconUrl: tab.favIconUrl,
       status: tab.status,
       incognito: tab.incognito,
+      audible: tab.audible,
+      cookieStoreId: tab.cookieStoreId,
+      muted: tab.mutedInfo && tab.mutedInfo.muted,
+      mutedReason: tab.mutedInfo && tab.mutedInfo.reason,
+      mutedExtensionId: tab.mutedInfo && tab.mutedInfo.extensionId,
+      sessionId: tab.sessionId,
       width: tab.width,
       height: tab.height,
       fromContent: null // or Map()
@@ -174,6 +181,13 @@ class TabTracker {
     normTab.favIconUrl = tab.favIconUrl;
     normTab.status = tab.status;
     normTab.incognito = tab.incognito;
+    normTab.audible = tab.audible;
+    normTab.cookieStoreId = tab.cookieStoreId;
+    // (muted is flattened)
+    normTab.muted = tab.mutedInfo && tab.mutedInfo.muted;
+    normTab.mutedReason = tab.mutedInfo && tab.mutedInfo.reason;
+    normTab.mutedExtensionId = tab.mutedInfo && tab.mutedInfo.extensionId;
+    normTab.sessionId = tab.sessionId;
     normTab.width = tab.width;
     normTab.height = tab.height;
   }
@@ -253,15 +267,19 @@ class TabTracker {
     const serial = ++this.globalSerial;
     if (winInfo.activeTabId !== null) {
       const oldNormTab = winInfo.tabs.get(winInfo.activeTabId);
-
-      oldNormTab.serial = serial;
-      oldNormTab.active = false;
+      if (oldNormTab) {
+        oldNormTab.serial = serial;
+        oldNormTab.active = false;
+      } else {
+        console.warn('activeTabId', winInfo.activeTabId, 'did not exist?');
+      }
     }
     const newNormTab = winInfo.tabs.get(tabId);
     if (newNormTab) {
       winInfo.activeTabId = tabId;
       newNormTab.serial = serial;
       newNormTab.active = true;
+      newNormTab.lastActivatedSerial = serial;
     }
     this._reportDirtyWindow(windowId);
   }

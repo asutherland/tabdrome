@@ -42,9 +42,10 @@ function mapOfMapsFromNestedObjects(obj) {
  * its `fromContent` field.
  */
 class ContentDigger {
-  constructor({ tabTracker, contentScriptCoordinator }) {
+  constructor({ tabTracker, contentScriptCoordinator, investigationCache }) {
     this.tabTracker = tabTracker;
     this.scriptCoordinator = contentScriptCoordinator;
+    this.investigationCache = investigationCache;
 
     /**
      * Keys are origins, values are Maps whose keys are dug content keys like
@@ -185,7 +186,36 @@ class ContentDigger {
     };
     shadowTab.constraintsByKey.set(key, constraints);
 
-    let result;
+    // -- Check the investigation cache
+
+    // The server doesn't see the hash, so rebuild the URL without that to avoid
+    // wasteful duplication.  (Also leave out crazy things like username and
+    // password.  They could matter to the server, but don't matter to us as
+    // much.)
+    //
+    // Note that we're leaving the constraint against the full href.  This is
+    // mainly because I don't want to replicate this interpretation of the URL
+    // everywhere.  Also, hashes could matter for some diggers.  (Possibly even
+    // for query diggers like this too, although there's little excuse for the
+    // "#!" style of app state now that history.pushState should be everywhere.)
+    // In any event, the intent has always been that the digger def would
+    // express the appropriate level of constraint for the site.  We would
+    // ideally similarly have it specify the level of caching, which may or may
+    // not be the same.
+    const effectiveUrl =
+      normTab.parsedUrl.origin + normTab.parsedUrl.pathname +
+      normTab.parsedUrl.search;
+
+    let result = this.investigationCache.syncLookup(
+      normTab.parsedUrl.origin, effectiveUrl, key);
+    if (result) {
+      // hooray! fast-path out.
+      this.tabTracker.setDataFromContentDigger(
+        normTab, key, result);
+      return;
+    }
+
+    // -- No cached result, ask the page.
     try {
       // We either expect a truthy result if the script succeeded, or null if
       // something went wrong.  We treat this in-band null as retryable
@@ -224,6 +254,15 @@ class ContentDigger {
                      constraints, normTab);
         return;
       }
+
+      // Cache the result.  Note that we intentionally are only saving this
+      // result if the constraint still holds.  We do this because right now
+      // the ContentScriptCoordinator is not providing any guarantees that the
+      // URL we ran against was the same URL we planned to run against.  That,
+      // however, is a guarantee it probably should add, even if only
+      // best-effort.
+      this.investigationCache.storeResult(
+        normTab.parsedUrl.origin, effectiveUrl, key, result);
 
       this.tabTracker.setDataFromContentDigger(normTab, key, result);
     } else {

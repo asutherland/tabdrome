@@ -34,7 +34,6 @@ class SessionArranger {
         },
         {
           rootSortGroup: normTab.pinned ? 'pinned' : 'normal',
-          rootSortKey: normTab.index,
           serial: normTab.serial,
           tab: normTab
         });

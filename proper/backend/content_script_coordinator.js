@@ -2,20 +2,19 @@
  * How long should the eviction timer wait before running an eviction pass if
  * the map does not become completely empty before the timer fires?
  *
- * This should be on the order of half of EVICT_ANCIENT_REQUEST_OLD_ENOUGH_SECS
+ * This should be on the order of half'o EVICT_ANCIENT_REQUEST_OLD_ENOUGH_MILLIS
  * because evictions now are used by upstream consumers to cancel their
  * suppression logic.  Half-ish because the eviction timer is only scheduled if
  * it's not already pending, so if this value is too large, the eviction may be
  * particularly delayed depending on relative timer phase.
  */
-const EVICTION_TIMER_DELAY_SECS = 2.0;
-const MILLIS_PER_SEC = 1000;
+const EVICTION_TIMER_DELAY_MILLIS = 2 * 1000;
 
 /**
  * How many seconds before the eviction timer should reject a returned promise.
  * This wants to be riding the boundary
  */
-const EVICT_ANCIENT_REQUEST_OLD_ENOUGH_SECS = 5.0;
+const EVICT_ANCIENT_REQUEST_OLD_ENOUGH_MILLIS = 5 * 1000;
 
 /**
  * Simple helper to ensure a given content script is loaded, send it a message,
@@ -57,16 +56,19 @@ class ContentScriptCoordinator {
 
     this._evictionTimerId = setTimeout(
       () => { this._performEviction();},
-      EVICTION_TIMER_DELAY_SECS * MILLIS_PER_SEC);
+      EVICTION_TIMER_DELAY_MILLIS);
   }
 
   _performEviction() {
     this._evictionTimerId = null;
 
     // Anything issued before the doomStamp is doomed.  doooooooomed!
-    const doomStamp = performance.now() - EVICT_ANCIENT_REQUEST_OLD_ENOUGH_SECS;
+    const doomStamp =
+      performance.now() - EVICT_ANCIENT_REQUEST_OLD_ENOUGH_MILLIS;
     for (let [id, { issued, reject }] of this.pendingRequestsById) {
       if (issued < doomStamp) {
+        console.log(id, 'too slow, issued:', issued, 'doomStamp:', doomStamp,
+                    'now:', performance.now());
         reject('too slow');
         this.pendingRequestsById.delete(id);
       }

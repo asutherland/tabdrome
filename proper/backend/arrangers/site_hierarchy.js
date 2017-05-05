@@ -37,8 +37,8 @@ class SiteHierarchyArranger {
         },
         {
           // We go in the domains group of the root.
-          rootSortGroup: 'domains',
-          rootSortKey: makeClusteringDomainSortString(
+          rootSortGroup: 'normal',
+          domainSortString: makeClusteringDomainSortString(
             normTab.parsedUrl.hostname),
           // And our children just want to be sorted by their text value.
           sortChildrenBy: 'text'
@@ -55,19 +55,12 @@ class SiteHierarchyArranger {
             //
             type: 'breadcrumb',
             url: crumb.url,
-            // In the event non-breadcrumbs get binned in with us in the future,
-            // let them happen before us to avoid ambiguity.
-            sortGroup: 'custom-after',
-            sortChildrenBy: 'text',
-            serial: normTab.serial
+            sortChildrenBy: 'text'
           });
       }
 
       // And just put the tab at its breadcrumb location.
-      if (node.props.tab) {
-        console.warn('duplicate tab? group:', node, 'tab:', normTab);
-      }
-      node.props.tab = normTab;
+      node.setTab(normTab);
     }
   }
 }

@@ -24,6 +24,7 @@
   "permissions": [
     "<all_urls>",
     "bookmarks",
+    "cookies",
     "history",
     "storage",
     "tabs"

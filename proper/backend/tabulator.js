@@ -5,7 +5,8 @@ const murmurHash3 = require('./utils/mhash3');
  * into the provided ordering list, and the second (for use within the same
  * group) which does a straight-up cmp() equivalent.
  */
-function makeClusteredComparator(groupKey, groupOrder, sortField) {
+function makeClusteredComparator(groupKey, groupOrder, groupSortFields,
+                                 groupSortAscending) {
   return function sortingComparator(a, b) {
     let aGroupPri = groupOrder.indexOf(a.props[groupKey]);
     let bGroupPri = groupOrder.indexOf(b.props[groupKey]);
@@ -13,35 +14,47 @@ function makeClusteredComparator(groupKey, groupOrder, sortField) {
     if (groupPriDelta) {
       return groupPriDelta;
     }
+    let sortField = groupSortFields[aGroupPri];
+    let ascendLessThan = groupSortAscending[aGroupPri] ? -1 : 1;
     let aKey = a.props[sortField];
     let bKey = b.props[sortField];
     if (aKey < bKey) {
-      return -1;
+      return ascendLessThan;
     } else if (aKey > bKey) {
-      return 1;
+      return -ascendLessThan;
     } else {
       return 0;
     }
   };
 }
 
-const ROOT_SORT_GROUP_ORDER = ['pinned', 'domains', 'normal'];
-const rootComparator = makeClusteredComparator(
-  'rootSortGroup', ROOT_SORT_GROUP_ORDER, 'rootSortKey');
+function makeFieldComparator(sortField, ascending = true) {
+  const lessThanResult = ascending ? -1 : 1;
 
-function makeFieldComparator(sortField) {
   return function(a, b) {
     let aKey = a.props[sortField];
     let bKey = b.props[sortField];
     if (aKey < bKey) {
-      return -1;
+      return lessThanResult;
     } else if (aKey > bKey) {
-      return 1;
+      return -lessThanResult;
     } else {
       return 0;
     }
   };
 }
+
+// TODO: Top-level sorting decisions should be made by user workflows, not
+// hardcoded.
+const ROOT_SORT_GROUP_ORDER = ['pinned', 'domains', 'normal'];
+const ROOT_SORT_GROUP_SORT_KEYS =
+  ['tabIndex', 'domainSortString', 'lastActivatedSerial'];
+const ROOT_SORT_GROUP_ASCENDING =
+  [true, true, false];
+const rootComparator = makeClusteredComparator(
+  'rootSortGroup', ROOT_SORT_GROUP_ORDER, ROOT_SORT_GROUP_SORT_KEYS,
+  ROOT_SORT_GROUP_ASCENDING);
+
 
 /**
  * Sort children, parametrized by a props dictionary that presumably belongs to
@@ -53,7 +66,7 @@ function makeFieldComparator(sortField) {
  *   Hence string values in props rather than direct comparator functions.
  */
 function sortChildren(props, children) {
-  let sortBy = props.sortChildrenBy;
+  let sortBy = props.sortChildrenBy || 'tabIndex';
   let sortingComparator;
   switch (sortBy) {
     // using $ as a magic prefix for now.
@@ -63,7 +76,11 @@ function sortChildren(props, children) {
 
     // Otherwise let's assume they want to sort on the props value of this key.
     default:
-      sortingComparator = makeFieldComparator(sortBy);
+      if (sortBy[0] === '-') {
+        sortingComparator = makeFieldComparator(sortBy.substring(1), false);
+      } else {
+        sortingComparator = makeFieldComparator(sortBy, true);
+      }
       break;
   }
 
@@ -116,6 +133,11 @@ class GroupNode {
         }
       }
     }
+    // the "tab" prop is potentially magic, use it to redundantly set tab if it
+    // got set.
+    if (this.props.tab) {
+      this.setTab(this.props.tab, true);
+    }
   }
 
   /**
@@ -164,6 +186,23 @@ class GroupNode {
   }
 
   /**
+   * Assign a (hopefully) canonical tab to this group, assigning it to
+   * props.tab with special semantics.  Specifically, we magically propagate
+   * the following props off of the normTab:
+   * - serial
+   * - lastActivatedSerial
+   */
+  setTab(normTab, dupeExpected) {
+    if (!dupeExpected && this.props.tab) {
+      console.warn('duplicate tab? group:', this, 'tab:', normTab);
+    }
+    this.props.tab = normTab;
+    this.props.serial = normTab.serial;
+    this.props.lastActivatedSerial = normTab.lastActivatedSerial;
+    this.props.tabIndex = normTab.index;
+  }
+
+  /**
    * Recursively render ourselves and our children into an inert data structure.
    * Props are cloned shallowly, children are sorted and __serialize recursively
    * invoked on them.
@@ -173,9 +212,12 @@ class GroupNode {
 
     let maxSerial = 0;
     let aggrString = '';
+    let maxLastActivatedSerial = 0;
     const serializedKids = sortedKids.map(x => {
       const serialized = x.__serialize();
       maxSerial = Math.max(maxSerial, serialized.serial || 0);
+      maxLastActivatedSerial = Math.max(maxLastActivatedSerial,
+                                        x.lastActivatedSerial || 0);
       aggrString += '|' + serialized.groupRelId;
       return serialized;
     });
@@ -185,6 +227,8 @@ class GroupNode {
       // If an explicit serial was provided, use that.  In the cast of the
       // rootNode, this will be the globalSerial.
       serial: this.props.serial || maxSerial,
+      lastActivatedSerial:
+        this.props.lastActivatedSerial || maxLastActivatedSerial,
       // We compute a hash over our contents as well to deal with the removal
       // of children.  This is necessary for aggregates where the only change
       // in their subtree is the removal of a node.  In that case, their derived
@@ -209,7 +253,12 @@ class GroupNode {
  */
 class RootNode extends GroupNode {
   constructor(globalSerial) {
-    super(null, '!root', {}, { sortChildrenBy: '$root', serial: globalSerial });
+    super(
+      null, '!root', {},
+      {
+        sortChildrenBy: '$root',
+        serial: globalSerial
+      });
   }
 }
 

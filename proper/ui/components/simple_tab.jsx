@@ -1,6 +1,6 @@
-const GroupComponent = require('./group_component');
+import GroupComponent from './group_component';
 
-class SimpleTab extends GroupComponent {
+export default class SimpleTab extends GroupComponent {
   constructor() {
     super();
 
@@ -40,5 +40,3 @@ class SimpleTab extends GroupComponent {
       </div>);
   }
 }
-
-module.exports = SimpleTab;

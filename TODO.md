@@ -1,3 +1,18 @@
+* Hierarchy from middle-click quasi-plan:
+  * Have DAG forest of trees from parents to children.  Initially just the
+    output of inferred middle-click without changes.  Subsequently modified by
+    workflow rules to know when to clip the branch and make the new tab its own
+    root or stash it under some other parent by some rule.  (But do keep around
+    the original edge as something to optionally be restored if the rule was
+    wrong.  Like "No, put this back under ${blah}").
+  * Being clear: Grouping/clustering logic establishes DAG and is a refinement
+    of current tab bidding mechanism.  With introduction of rules, rules get a
+    pass over all tabs and establish a prioritized list of tuples of [rule,
+    tab, arranger].  As these fire they remove tabs from the pool and build the
+    group/node hierarchy.  We maintain a mapping from tabId to the group node
+    it got stashed in.
+  * Run arrangers as tree traversal, with arrangers informed of parent node's
+    placement.
 * Actions Plan
   * Service actions other than activating a tab in the back-end.
   * Along with the root group, a list of action definitions and their simple

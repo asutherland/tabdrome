@@ -49,14 +49,17 @@ class SiteHierarchyArranger {
       for (let crumb of breadcrumbs) {
         node = node.getOrCreateGroup(
           {
-            text: crumb.title || normTab.title
+            url: crumb.url,
           },
           {
-            //
+            text: crumb.title || normTab.title,
             type: 'breadcrumb',
-            url: crumb.url,
             sortChildrenBy: 'text'
           });
+        // fixups in case the node already existed....
+        if (crumb.titleStrength === 'strong') {
+          node.props.title = crumb.title;
+        }
       }
 
       // And just put the tab at its breadcrumb location.

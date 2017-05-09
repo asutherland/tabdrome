@@ -1,9 +1,12 @@
-const React = window.React = require('react');
-const ReactDOM = window.ReactDOM = require('react-dom');
+import React from 'react';
+import ReactDOM from 'react-dom';
 
-const ClientBridgeFrontend = require('./client_bridge_frontend');
+window.React = React;
+window.ReactDOM = ReactDOM;
 
-const VertTabBar = require('./components/vert_tab_bar');
+import ClientBridgeFrontend from './client_bridge_frontend';
+
+import VertTabBar from './components/vert_tab_bar';
 
 class App extends React.Component {
   constructor(props) {

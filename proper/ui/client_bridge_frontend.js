@@ -4,7 +4,7 @@
  * updates occuring, including an initial compulsory onUpdate once the
  * connection has been established.
  */
-class ClientBridgeFrontend {
+export default class ClientBridgeFrontend {
   constructor({ onUpdate }) {
     this._onUpdate = onUpdate;
 
@@ -21,5 +21,3 @@ class ClientBridgeFrontend {
     this._onUpdate(rootGroup);
   }
 }
-
-module.exports = ClientBridgeFrontend;

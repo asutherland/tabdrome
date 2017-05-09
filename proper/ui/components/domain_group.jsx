@@ -1,7 +1,7 @@
-const GroupComponent = require('./group_component');
-const varyByGroup = require('./vary_by_group');
+import GroupComponent from './group_component';
+import varyByGroup from './vary_by_group';
 
-class DomainGroup extends GroupComponent {
+export default class DomainGroup extends GroupComponent {
   render() {
     const group = this.props.group;
     const nodeProps = group.nodeProps;
@@ -15,5 +15,3 @@ class DomainGroup extends GroupComponent {
     );
   }
 }
-
-module.exports = DomainGroup;

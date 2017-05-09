@@ -27,6 +27,10 @@ class InvestigationCache {
 
     this.storageManager = storageManager;
 
+    /**
+     * Nested map with effective aggregate key of [origin, diggerSpec.diggerId,
+     * cacheKey] and where the value is the digger result.
+     */
     this.resultsByOrigin = null;
 
     this._load();
@@ -45,18 +49,18 @@ class InvestigationCache {
     this.resultsByOrigin = new Map();
   }
 
-  syncLookup(origin, url, key) {
+  syncLookup(origin, diggerSpec, cacheKey) {
     const originResults = this.resultsByOrigin.get(origin);
     if (!originResults) {
       return null;
     }
 
-    const urlResults = originResults.get(url);
-    if (!urlResults) {
+    const diggerResults = originResults.get(diggerSpec.diggerId);
+    if (!diggerResults) {
       return null;
     }
 
-    const result = urlResults.get(key);
+    const result = diggerResults.get(cacheKey);
     if (!result) {
       return null;
     }
@@ -67,21 +71,20 @@ class InvestigationCache {
     return result;
   }
 
-  storeResult(origin, url, key, value) {
+  storeResult(origin, diggerSpec, cacheKey, value) {
     let originResults = this.resultsByOrigin.get(origin);
     if (!originResults) {
       originResults = new Map();
       this.resultsByOrigin.set(origin, originResults);
     }
 
-    let urlResults = originResults.get(url);
-    if (!urlResults) {
-      urlResults = new Map();
-      originResults.set(url, urlResults);
+    let diggerResults = originResults.get(diggerSpec.diggerId);
+    if (!diggerResults) {
+      diggerResults = new Map();
+      originResults.set(diggerSpec.diggerId, diggerResults);
     }
 
-    console.log('IC storing:', key, value);
-    urlResults.set(key, value);
+    diggerResults.set(cacheKey, value);
     this.storageManager.reportDirtyClient(this);
   }
 

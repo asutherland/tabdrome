@@ -5,22 +5,22 @@
 
 // =============================================================================
 // IMPORTS
-const StorageManager = require('./storage/storage_manager');
-const InvestigationCache = require('./storage/investigation_cache');
+import StorageManager from './storage/storage_manager';
+import InvestigationCache from './storage/investigation_cache';
 //const TabMetadataStore = require('./storage/tab_metadata_store');
 //const WorkflowStore = require('./storage/workflow_store');
 
-const TabTracker = require('./tab_tracker');
-const Tabulator = require('./tabulator');
-const ClientBridgeBackend = require('./client_bridge_backend');
+import TabTracker from './tab_tracker';
+import Tabulator from './tabulator';
+import ClientBridgeBackend from './client_bridge_backend';
 
-const ContentScriptCoordinator = require('./content_script_coordinator');
+import ContentScriptCoordinator from './content_script_coordinator';
 
-const ContentDigger = require('./content_digger');
-const ContextSearcher = require('./context_searcher');
+import ContentDigger from './content_digger';
+import ContextSearcher from './context_searcher';
 
-const SiteHierarchyArranger = require('./arrangers/site_hierarchy');
-const SessionArranger = require('./arrangers/session');
+import SiteHierarchyArranger from './arrangers/site_hierarchy';
+import SessionArranger from './arrangers/session';
 
 // =============================================================================
 // INITIALIZE

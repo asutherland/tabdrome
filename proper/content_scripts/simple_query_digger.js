@@ -52,6 +52,13 @@ const runSimpleQuery = function(spec) {
           case 'constant':
             result[key] = fallbackValue;
             continue;
+          case 'use-document-url-sans-hash':
+            let docUrl = document.location.href;
+            if (document.location.hash) {
+              docUrl = docUrl.slice(0, docUrl.indexOf('#'));
+            }
+            result[key] = docUrl;
+            continue;
           case 'use-self':
             valueNode = item;
             break;

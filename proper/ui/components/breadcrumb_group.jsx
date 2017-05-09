@@ -1,5 +1,5 @@
-const GroupComponent = require('./group_component');
-const varyByGroup = require('./vary_by_group');
+import GroupComponent from './group_component';
+import varyByGroup from './vary_by_group';
 
 /**
  * Hierarchical breadcrumb groups.  Each level of the trail can be one of three
@@ -13,7 +13,7 @@ const varyByGroup = require('./vary_by_group');
  *   covered by the 'existing tab' case.
  *
  */
-class BreadcrumbGroup extends GroupComponent {
+export default class BreadcrumbGroup extends GroupComponent {
   constructor() {
     super();
     this.handleCrumbClick = this.handleCrumbClick.bind(this);
@@ -76,5 +76,3 @@ class BreadcrumbGroup extends GroupComponent {
     );
   }
 }
-
-module.exports = BreadcrumbGroup;

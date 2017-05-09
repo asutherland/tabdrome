@@ -1,5 +1,7 @@
 /* Yeah, styling is currently just normal CSS. */
 
+@import 'react-contextmenu.css';
+
 /*
  * Variables are currently used as static #define type values.  We do not use
  * them as independent mix-ins.  That is, when something becomes active, we

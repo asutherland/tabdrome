@@ -1,4 +1,4 @@
-const React = require('react');
+import { Component } from 'react';
 
 /**
  * For rendering serialized groups where state changes are always accompanied by
@@ -8,7 +8,7 @@ const React = require('react');
  * because they are actually a hash derived from their children rather than
  * something like max().
  */
-class GroupComponent extends React.Component {
+export default class GroupComponent extends Component {
   constructor(props) {
     super(props);
   }
@@ -20,5 +20,3 @@ class GroupComponent extends React.Component {
            curGroup.has !== nextGroup.hash;
   }
 }
-
-module.exports = GroupComponent;

@@ -36,28 +36,6 @@
     happens like the tab under the context menu changing or stuff like that.
     Because things take two clicks, there is no race.  The user will always get
     to perceive what they are acting on.
-* ContentDigger / InvestigationCache
-  * Add constraints and cacheKey fields to the digger definitions, with each of
-    these being basically { key: [list of selectn traversals that will be
-    concatenated to a single string]}.
-  * Either decouple the digger key from the fromContents key so that we can use
-    it as an explicit lookup, and/or tuple them.  Could also have live object
-    ref.  The intent is to be able to easily get at the constraints selectors
-    above when enforcing constraints since the constraints would no longer be
-    self-descriptive.
-  * Accordingly change InvestigationCache keying.  The fundamental two pieces of
-    interest are the origin and the digger.  I'm not sure we'd ever expect to
-    have such extension turnover that full traversals to dump moot extension
-    data would be something we'd have to optimize for.  It's more likely for the
-    user's set of visited sites to get crazy big and/or just for us to run up
-    against a site that emergently uses its URL space in way that causes us to
-    accumulate way too many values.  For example, specific tweets on twitter
-    have their own URL, which is great from a webby-ness perspective, but
-    potentially bad for our naive storage.  That's something that wants a more
-    structured understanding like an explicit messaging client.  So the plan
-    is then that we continue to key by origin first, for easy eviction
-    management, but then by provider-key, and then by the cacheKey that is
-    defined by the provider, making it compulsory to go below the provider key.
 * ContentScriptCoordinator
   * Stop trying to executeScript against tabs that aren't loaded yet.  We should
     just consult the cache and then not bother to try and probe the tab.  It's

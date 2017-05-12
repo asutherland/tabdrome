@@ -6,7 +6,7 @@ var TransferWebpackPlugin = require('transfer-webpack-plugin');
 var config = {
   entry: {
     // Tab display UI entry-point.  Loaded from static/tabdrome.html
-    'ui-main': path.resolve(__dirname, 'proper/ui/ui-main.jsx'),
+    'ui-main': path.resolve(__dirname, 'proper/tab-ui/ui-main.jsx'),
     // The backend logic that lives in a background page and the JS is directly
     // loaded as defined in static/manifest.json without any HTML page involved.
     'backend-main': path.resolve(__dirname, 'proper/backend/main.js'),

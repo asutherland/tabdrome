@@ -71,3 +71,15 @@ You already did that and now you've made changes case:
 Firefox quit for some reason:
 1. Go back to the base case step 1 or 2.  Firefox forgot about Tabdrome when it
    quit.
+
+### Alternate Running ###
+
+There's now a Makefile!  It's got the following super cool targets you can use
+like so:
+* `make npm-build`: Avoid having to laboriously type `npm run build` like a
+  sucker.  Build results show up in build/.
+* `make webext-build`: Create an .xpi from the contents of build/.  You have to
+  have built the "npm-build" target already, or you could...
+* `make build`: This does both of the above things!  (More properly,
+  webext-build could depend on npm-build, but sometimes you want to modify the
+  contents of build/ manually.)

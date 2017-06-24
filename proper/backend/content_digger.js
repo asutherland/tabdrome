@@ -46,8 +46,8 @@ function mapOfMapsFromNestedObjects(obj) {
  * its `fromContent` field.
  */
 export default class ContentDigger {
-  constructor({ tabTracker, contentScriptCoordinator, investigationCache }) {
-    this.tabTracker = tabTracker;
+  constructor({ tabCascader, contentScriptCoordinator, investigationCache }) {
+    this.tabCascader = tabCascader;
     this.scriptCoordinator = contentScriptCoordinator;
     this.investigationCache = investigationCache;
 
@@ -68,27 +68,6 @@ export default class ContentDigger {
      * annoying.
      */
     this.diggersByOrigin = mapOfMapsFromNestedObjects(hardcodedSiteInfo);
-
-    /**
-     * A mapping from normTabs to our dig information.  This is a (code-wise,
-     * not performance-wise) cheap way to discard shadow tabs when their normTab
-     * disappears.  It depends on the fact that the normTabs are created and
-     * mutated in this global.
-     *
-     * We do this for separation of concerns, but there are other options:
-     * - Have the TabTracker nest parallel objects to the gets-serialized
-     *   normTab so that we and/or other explicitly interacting logic can have
-     *   our own objects and TabTracker handles the book-keeping.
-     * - Use a normal map and just listen to events from TabTracker.  Duplicate
-     *   code can be eliminated via subclassing.
-     *
-     * Currently we store:
-     * - constraintsByKey: A Map from digger key values to the constraint
-     *   objects that express what must hold true for the "fromContent" values
-     *   to still be valid.  Right now this is just the full URL, but the intent
-     *   is to be able to express more complicated constraints.
-     */
-    this.shadowTabs = new WeakMap();
   }
 
   /**
@@ -98,15 +77,14 @@ export default class ContentDigger {
    * "fromContent" data whose constraints no longer applies before triggering
    * digging.
    */
-  digUpdatedTab(normTab) {
+  digUpdatedTab({ normTab }, shadowTab) {
     const origin = normTab.parsedUrl.origin;
     const diggers = this.diggersByOrigin.get(origin);
-    let shadowTab = this.shadowTabs.get(normTab);
 
     // If there's no current state and we're not going to create any state, we
     // can fast-path out.
     if (!diggers && !shadowTab) {
-      return;
+      return null;
     }
 
     // The set of dug content whose keys are believed to still be valid.
@@ -114,7 +92,6 @@ export default class ContentDigger {
 
     if (!shadowTab) {
       shadowTab = { constraintsByKey: new Map() };
-      this.shadowTabs.set(normTab, shadowTab);
     } else {
       this._purgeViolatingData(
         normTab, shadowTab, shadowTab.constraintsByKey, stillValidKeys);
@@ -123,6 +100,8 @@ export default class ContentDigger {
     if (diggers) {
       this._digMissingData(normTab, shadowTab, diggers, stillValidKeys);
     }
+
+    return shadowTab;
   }
 
   /**
@@ -285,7 +264,7 @@ export default class ContentDigger {
           normTab.parsedUrl.origin, diggerSpec, cacheKey, result);
       }
 
-      this.tabTracker.setDataFromContentDigger(
+      this.tabCascader.setDataFromContentDigger(
         normTab, diggerSpec.provides, result);
     } else {
       // As per the `result` comments, null means this is a retryable error, so
@@ -304,7 +283,7 @@ export default class ContentDigger {
       if (!this._constraintsMatchTab(
              constraints, diggerSpec.constraintSpec, normTab)) {
         constraintsByKey.delete(key);
-        this.tabTracker.setDataFromContentDigger(normTab, key, undefined);
+        this.tabCascader.setDataFromContentDigger(normTab, key, undefined);
       } else {
         stillValidKeys.add(key);
       }

@@ -7,11 +7,13 @@
 // IMPORTS
 import StorageManager from './storage/storage_manager';
 import InvestigationCache from './storage/investigation_cache';
-//const TabMetadataStore = require('./storage/tab_metadata_store');
-//const WorkflowStore = require('./storage/workflow_store');
+import SiteMetadataStore from './storage/site_metadata_store';
+import TabMetadataStore from './storage/tab_metadata_store';
+import WorkflowStore from './storage/workflow_store';
 
 import TabTracker from './tab_tracker';
 import Tabulator from './tabulator';
+import TabCascader from './tab_cascader';
 import ClientBridgeBackend from './client_bridge_backend';
 
 import ContentScriptCoordinator from './content_script_coordinator';
@@ -22,56 +24,76 @@ import ContextSearcher from './context_searcher';
 import SiteHierarchyArranger from './arrangers/site_hierarchy';
 import SessionArranger from './arrangers/session';
 
+import WorkflowManager from './workflow_manager';
+
+import RulesRuler from './rules_ruler';
+
 // =============================================================================
 // INITIALIZE
+//
+// Note that the setup below is not as pretty as it could be.  The dominating
+// concern is making relationships explicit and facilitating testing.  The
+// alternative to explicit is a generic event listener setup that allows for
+// dynamic registration.
 
 const init = async() => {
   // --- Initialize Storage
   const storageManager = new StorageManager();
   const investigationCache = new InvestigationCache({ storageManager });
-  //const tabMetadataStore = new TabMetadataStore({ storageManager });
-  //const workflowStore = new WorkflowStore({ storageManager });
+  const siteMetadataStore = new SiteMetadataStore({ storageManager });
+  const tabMetadataStore = new TabMetadataStore({ storageManager });
+  const workflowStore = new WorkflowStore({ storageManager });
 
   // Wait for all stored data to load before bringing up the TabTracker.  Many
   // of the stores and their consumers assume at least some data is
   // synchronously available.
   await storageManager.loadedPromise;
 
-  const clientBridge = new ClientBridgeBackend();
-  const tabulator = new Tabulator({
-    arrangers: [
-      new SiteHierarchyArranger(),
-      new SessionArranger()
-    ]
-  });
+  const workflowManager = new WorkflowManager({ workflowStore });
 
-  // We're trying to make the hook-ups between things explicit to aid in testing
-  // and reduce coupling.  However, the TabTracker fundamentally has a higher
-  // degree of coupling with the ContentDigger and ContextSearcher which in turn
-  // are highly coupled with the ContentScriptCoordinator.  So that forms one
-  // cluster and the other cluster is the ClientBridgeBackend.
-  window.tracker = new TabTracker({
+  const clientBridge = new ClientBridgeBackend({ workflowManager });
+
+  const rulesRuler = new RulesRuler();
+
+  window.cascader = new TabCascader({
+    rulesRuler,
+    siteMetadataStore, tabMetadataStore,
+
     // Circular dependencies?  Us?  Never...
-    initHelpers: function(tabTracker) {
-      const contentScriptCoordinator = new ContentScriptCoordinator(tabTracker);
+    initHelpers: function(tabCascader) {
+      const contentScriptCoordinator = new ContentScriptCoordinator();
       const contentDigger = new ContentDigger(
-        { tabTracker, contentScriptCoordinator, investigationCache });
+        { tabCascader, contentScriptCoordinator, investigationCache });
       const contextSearcher = new ContextSearcher(
-        { tabTracker, contentScriptCoordinator });
+        { tabCascader, contentScriptCoordinator });
+
+      window.tabTracker = new TabTracker({
+        onTabCreated: function(normTab) {
+          tabCascader.onCreatedNormTab(normTab);
+        },
+        onTabChanged: function(normTab) {
+          tabCascader.onChangedNormTab(normTab);
+        },
+        onTabRemoved: function(normTab) {
+          tabCascader.onRemovedNormTab(normTab);
+        }
+      });
 
       return {
         contentScriptCoordinator,
         contentDigger,
-        contextSearcher
+        contextSearcher,
       };
     },
 
+    // XXX update
     onWindowTabChanges: function (windowId, windowNormTabsById, globalSerial) {
       const rootGroup = tabulator.tabulate(windowNormTabsById, globalSerial);
       const serializedRootGroup = rootGroup.__serialize();
       clientBridge.onWindowTabChanges(windowId, serializedRootGroup);
     },
 
+    // XXX update
     onWindowRemoved: function (windowId) {
       clientBridge.onWindowRemoved(windowId);
     }

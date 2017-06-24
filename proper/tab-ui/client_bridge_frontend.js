@@ -10,7 +10,7 @@ export default class ClientBridgeFrontend {
 
     browser.windows.getCurrent().then((windowInfo) => {
       this.port =
-        chrome.runtime.connect({ name: `ui-bridge:${windowInfo.id}` });
+        chrome.runtime.connect({ name: `tab-ui-bridge:${windowInfo.id}` });
       this.port.onMessage.addListener(this._onMessage.bind(this));
     });
   }

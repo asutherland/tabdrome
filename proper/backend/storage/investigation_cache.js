@@ -21,7 +21,7 @@
  * - Improving the initial placement of freshly opened tabs.  If a tab has been
  *   previously visited
  */
-class InvestigationCache {
+export default class InvestigationCache {
   constructor({ storageManager }) {
     this.clientName = 'InvestigationCache';
 
@@ -92,5 +92,3 @@ class InvestigationCache {
     return { version: 1, data: this.resultsByOrigin };
   }
 }
-
-module.exports = InvestigationCache;

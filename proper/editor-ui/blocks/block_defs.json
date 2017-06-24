@@ -1,0 +1,327 @@
+[{
+  "type": "top_pred",
+  "message0": "Has %1 %2",
+  "args0": [
+    {
+      "type": "field_dropdown",
+      "name": "pred_type",
+      "options": [
+        [
+          "all",
+          "PRED_ALL"
+        ],
+        [
+          "any",
+          "PRED_ANY"
+        ]
+      ]
+    },
+    {
+      "type": "input_statement",
+      "name": "filters",
+      "check": "Condition"
+    }
+  ],
+  "output": "TopPredicate",
+  "colour": 230,
+  "tooltip": "",
+  "helpUrl": ""
+},
+{
+  "type": "nested_pred",
+  "message0": "Has %1 %2",
+  "args0": [
+    {
+      "type": "field_dropdown",
+      "name": "pred_type",
+      "options": [
+        [
+          "all",
+          "PRED_ALL"
+        ],
+        [
+          "any",
+          "PRED_ANY"
+        ]
+      ]
+    },
+    {
+      "type": "input_statement",
+      "name": "filters",
+      "check": "Condition"
+    }
+  ],
+  "previousStatement": "Condition",
+  "nextStatement": "Condition",
+  "colour": 230,
+  "tooltip": "",
+  "helpUrl": ""
+},
+{
+  "type": "tag_match",
+  "message0": "%1 %2 %3",
+  "args0": [
+    {
+      "type": "field_dropdown",
+      "name": "TAG_HAS",
+      "options": [
+        [
+          "Has tag",
+          "TAG_HAS_YES"
+        ],
+        [
+          "Does not have tag",
+          "TAG_HAS_NO"
+        ]
+      ]
+    },
+    {
+      "type": "field_input",
+      "name": "TAG_NAME",
+      "text": ""
+    },
+    {
+      "type": "field_dropdown",
+      "name": "TAG_SOURCE",
+      "options": [
+        [
+          "from any source",
+          "TAG_SRC_ANY"
+        ],
+        [
+          "from tab creation",
+          "TAG_SRC_TAB_CREATION"
+        ],
+        [
+          "from analysis rules",
+          "TAG_SRC_ANALYSIS"
+        ],
+        [
+          "from tab badge tag",
+          "TAG_SRC_TAB_BADGE"
+        ],
+        [
+          "from url badge tag",
+          "TAG_SRC_URL_BADGE"
+        ]
+      ]
+    }
+  ],
+  "inputsInline": true,
+  "previousStatement": "Condition",
+  "nextStatement": "Condition",
+  "colour": 225,
+  "tooltip": "",
+  "helpUrl": ""
+},
+{
+  "type": "url_hostname_match",
+  "message0": "URL hostname %1 %2",
+  "args0": [
+    {
+      "type": "field_dropdown",
+      "name": "URL_MATCHES",
+      "options": [
+        [
+          "is",
+          "URL_MATCHES_YES"
+        ],
+        [
+          "is not",
+          "URL_MATCHES_NO"
+        ]
+      ]
+    },
+    {
+      "type": "field_input",
+      "name": "URL_MATCH_VALUE",
+      "text": ""
+    }
+  ],
+  "inputsInline": true,
+  "previousStatement": "Condition",
+  "nextStatement": "Condition",
+  "colour": 225,
+  "tooltip": "",
+  "helpUrl": ""
+},
+{
+  "type": "url_path_match",
+  "message0": "URL path %1 %2",
+  "args0": [
+    {
+      "type": "field_dropdown",
+      "name": "URL_MATCHES",
+      "options": [
+        [
+          "is",
+          "URL_PATH_EXACT_YES"
+        ],
+        [
+          "is not",
+          "URL_PATH_EXACT_NO"
+        ],
+        [
+          "starts with",
+          "URL_PATH_STARTSWITH_YES"
+        ],
+        [
+          "does not start with",
+          "URL_PATH_STARTSWITH_NO"
+        ]
+      ]
+    },
+    {
+      "type": "field_input",
+      "name": "URL_PATH_MATCH_VALUE",
+      "text": ""
+    }
+  ],
+  "inputsInline": true,
+  "previousStatement": "Condition",
+  "nextStatement": "Condition",
+  "colour": 225,
+  "tooltip": "",
+  "helpUrl": ""
+},
+{
+  "type": "analysis_rule",
+  "message0": "If %1 Then %2",
+  "args0": [
+    {
+      "type": "input_value",
+      "name": "condition",
+      "check": "TopPredicate"
+    },
+    {
+      "type": "input_statement",
+      "name": "action",
+      "check": "TagAction"
+    }
+  ],
+  "colour": 15,
+  "tooltip": "",
+  "helpUrl": ""
+},
+{
+  "type": "tag_action",
+  "message0": "%1 %2",
+  "args0": [
+    {
+      "type": "field_dropdown",
+      "name": "TAG_ACT",
+      "options": [
+        [
+          "Set tag",
+          "TAG_ACT_SET_TAG"
+        ],
+        [
+          "Set anti-tag",
+          "TAG_ACT_SET_ANTITAG"
+        ]
+      ]
+    },
+    {
+      "type": "field_input",
+      "name": "TAG_NAME",
+      "text": ""
+    }
+  ],
+  "previousStatement": "TagAction",
+  "nextStatement": "TagAction",
+  "colour": 330,
+  "tooltip": "",
+  "helpUrl": ""
+},
+{
+  "type": "bucket_action",
+  "message0": "Put in bucket type %1 with id %2",
+  "args0": [
+    {
+      "type": "field_input",
+      "name": "BUCKET_NAME",
+      "text": "default"
+    },
+    {
+      "type": "input_value",
+      "name": "NAME",
+      "check": "TabScalar"
+    }
+  ],
+  "inputsInline": true,
+  "output": "BucketAction",
+  "colour": 330,
+  "tooltip": "",
+  "helpUrl": ""
+},
+{
+  "type": "command_rule",
+  "message0": "Action applies to %1 Do %2",
+  "args0": [
+    {
+      "type": "input_value",
+      "name": "appliesTo",
+      "check": "TabFilter"
+    },
+    {
+      "type": "input_statement",
+      "name": "do",
+      "check": "CommandAction"
+    }
+  ],
+  "colour": 15,
+  "tooltip": "",
+  "helpUrl": ""
+},
+{
+  "type": "persistent_tag_action",
+  "message0": "%1 %2 %3",
+  "args0": [
+    {
+      "type": "field_dropdown",
+      "name": "TAG_ACT",
+      "options": [
+        [
+          "Set tag",
+          "TAG_ACT_SET_TAG"
+        ],
+        [
+          "Set anti-tag",
+          "TAG_ACT_SET_ANTITAG"
+        ]
+      ]
+    },
+    {
+      "type": "field_input",
+      "name": "TAG_NAME",
+      "text": ""
+    },
+    {
+      "type": "field_dropdown",
+      "name": "TAG_PERSIST",
+      "options": [
+        [
+          "on the tab",
+          "TAG_PERSIST_TAB"
+        ],
+        [
+          "on the site's origin",
+          "TAG_PERSIST_SITE_ORIGIN"
+        ],
+        [
+          "on the tab's URL",
+          "TAG_PERSIST_URL"
+        ],
+        [
+          "on the tab's URL's containing directory",
+          "TAG_PERSIST_DIRECTORY"
+        ]
+      ]
+    }
+  ],
+  "previousStatement": "CommandAction",
+  "nextStatement": "CommandAction",
+  "colour": 330,
+  "tooltip": "",
+  "helpUrl": ""
+}]

@@ -15,8 +15,6 @@
  * to invent our own heuristics around this and are likely end up ignoring
  * openerTabId other than as a strongly weighted input to the heuristics.
  */
-class TabMetadataStore {
+export default class TabMetadataStore {
 
 }
-
-module.exports = TabMetadataStore;

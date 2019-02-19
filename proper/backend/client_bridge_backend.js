@@ -5,7 +5,7 @@
  * Communication with content scripts is handled by the
  * ContentScriptCoordinator.
  */
-class ClientBridgeBackend {
+export default class ClientBridgeBackend {
   constructor({ workflowManager }) {
     this.workflowManager = workflowManager;
 
@@ -129,5 +129,3 @@ class ClientBridgeBackend {
     });
   }
 }
-
-module.exports = ClientBridgeBackend;

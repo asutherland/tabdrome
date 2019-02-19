@@ -4,6 +4,7 @@ var buildPath = path.resolve(__dirname, 'build');
 var TransferWebpackPlugin = require('transfer-webpack-plugin');
 
 var config = {
+  mode: 'development',
   entry: {
     // Tab display UI entry-point.  Loaded from static/tabdrome.html
     'ui-main': path.resolve(__dirname, 'proper/tab-ui/ui-main.jsx'),

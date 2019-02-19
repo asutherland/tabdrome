@@ -34,7 +34,7 @@ const EVICT_ANCIENT_REQUEST_OLD_ENOUGH_MILLIS = 5 * 1000;
  *   disconnect is generated promptly, although it's not clear how that
  *   interacts with the bfcache.
  */
-class ContentScriptCoordinator {
+export default class ContentScriptCoordinator {
   constructor() {
     this.nextId = 1;
     this.pendingRequestsById = new Map();
@@ -145,5 +145,3 @@ class ContentScriptCoordinator {
     resolve(message.result);
   }
 }
-
-module.exports = ContentScriptCoordinator;

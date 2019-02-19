@@ -14,7 +14,7 @@
  * representation.
  */
 export default class RulesRuler {
-  constructor({  }) {
+  constructor() {
 
   }
 

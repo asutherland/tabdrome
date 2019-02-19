@@ -12,7 +12,7 @@
  * extension, ideally.  There's a lot of wiggle room about responsiblity for
  * the various pieces.)
  */
-class SessionArranger {
+export default class SessionArranger {
   constructor() {
   }
 
@@ -40,5 +40,3 @@ class SessionArranger {
     }
   }
 }
-
-module.exports = SessionArranger;

@@ -6,7 +6,7 @@ function makeClusteringDomainSortString(domain) {
   return domain.split('.').reverse().join('.');
 }
 
-class SiteHierarchyArranger {
+export default class SiteHierarchyArranger {
   constructor() {
   }
 
@@ -67,5 +67,3 @@ class SiteHierarchyArranger {
     }
   }
 }
-
-module.exports = SiteHierarchyArranger;

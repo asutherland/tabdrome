@@ -1,5 +1,5 @@
 // use jakearchibald's IndexedDB-wrapped-in-promises library.
-const idb = require('idb');
+import idb from 'idb';
 
 /**
  * Very simple periodically flushed storage helper that handles the actual
@@ -15,7 +15,7 @@ const idb = require('idb');
  * that we're not going completely naive, having stores/caches tell us when
  * they're dirty.
  */
-class StorageManager {
+export default class StorageManager {
   constructor() {
     this.clientInfoByName = new Map();
     this.dirtyClients = new Set();
@@ -107,5 +107,3 @@ class StorageManager {
     this._flushTimerId = null;
   }
 }
-
-module.exports = StorageManager;

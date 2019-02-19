@@ -13,7 +13,7 @@
  * only run in the background page.  This is because we only (want to) receive
  * and process data from content scripts in one place.
  */
-class TabTracker {
+export default class TabTracker {
   constructor({ onTabCreated, onTabChanged, onTabRemoved }) {
     this._notifyTabCreated = onTabCreated;
     this._notifyTabChanged = onTabChanged;
@@ -329,5 +329,3 @@ class TabTracker {
     }
   }
 }
-
-module.exports = TabTracker;

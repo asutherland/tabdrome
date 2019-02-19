@@ -86,14 +86,14 @@ const init = async() => {
       };
     },
 
-    // XXX update
+    // XXX update to new flow; this logic is now moot!
     onWindowTabChanges: function (windowId, windowNormTabsById, globalSerial) {
       const rootGroup = tabulator.tabulate(windowNormTabsById, globalSerial);
       const serializedRootGroup = rootGroup.__serialize();
       clientBridge.onWindowTabChanges(windowId, serializedRootGroup);
     },
 
-    // XXX update
+    // XXX update to new flow; this logic is now moot!
     onWindowRemoved: function (windowId) {
       clientBridge.onWindowRemoved(windowId);
     }

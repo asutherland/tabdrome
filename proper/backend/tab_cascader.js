@@ -182,6 +182,7 @@ export default class TabCascader {
       // single window, or due to cross-window tab display.
       topLevelBuckets: new Set()
     };
+    return glomTab;
   }
 
   _getGlomTabOrExplode(tabSuid) {

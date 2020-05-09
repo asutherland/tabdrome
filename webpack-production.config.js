@@ -19,7 +19,7 @@ var config = {
   },
   resolve: {
     alias: {},
-    extensions: ['.js', '.jsx']
+    extensions: ['.js', '.jsx', '.ts', '.tsx']
   },
   //Render source-map file for final build
   devtool: 'source-map',
@@ -43,11 +43,17 @@ var config = {
   ],
   module: {
     rules: [
+      // All files with a '.ts' or '.tsx' extension will be handled by 'awesome-typescript-loader'.
+      { test: /\.tsx?$/, loader: 'awesome-typescript-loader' },
+
       {
         test: /\.jsx$/,
         exclude: /node_modules/,
         loader: 'babel-loader'
-      }
+      },
+
+      // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
+      { test: /\.js$/, loader: 'source-map-loader' }
     ]
   }
 };

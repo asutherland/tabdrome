@@ -1,6 +1,9 @@
 The `TabTracker` exposes a normalized tab representation to the rest of the
 extension.  This file documents it.
 
+NOTE!  This is migrating into a typescript file.  The doc blocks need to be
+reformatted!
+
 # Meta #
 
 ## Why? ##
@@ -179,11 +182,3 @@ as controlled by the arrangers.
 
 
 ## Future Fields ##
-
-These are all standard chrome.tabs fields that Gecko currently does not provide
-and so we don't bother to propagate them or acknowledge that they exist outside
-of this high quality document.
-
-- audible
-- mutedInfo
-- sessionId

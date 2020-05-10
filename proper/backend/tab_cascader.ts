@@ -1,3 +1,12 @@
+import RulesRuler from "./rules_ruler";
+import SiteMetadataStore from "./storage/site_metadata_store";
+import TabMetadataStore from "./storage/tab_metadata_store";
+import ContentScriptCoordinator from "./content_script_coordinator";
+import ContentDigger from "./content_digger";
+import ContextSearcher from "./context_searcher";
+
+import { Bucket, GlomTab, NormTab, SUID, TabDataBundle } from './tab_types';
+
 /**
  * Drives the multi-stage pipline from learning about the existence of a tab
  * through analysis, bucketing, and arranging.
@@ -46,6 +55,20 @@
  *
  */
 export default class TabCascader {
+  rulesRuler: RulesRuler;
+  siteMetadataStore: SiteMetadataStore;
+  tabMetadataStore: TabMetadataStore;
+  _glommedTabsBySuid: Map<SUID, GlomTab>;
+  _sessionRestorePossible: boolean;
+  _stage2PendingTabs: Set<GlomTab>;
+  _stage3PendingTabs: Set<GlomTab>;
+  _stage4PendingBuckets: Set<GlomTab>;
+  _flushTimerId: number;
+  contentScriptCoordinator: ContentScriptCoordinator;
+  contentDigger: ContentDigger;
+  contextSearcher: ContextSearcher;
+
+
   constructor({ initHelpers,
                 rulesRuler,
                 siteMetadataStore, tabMetadataStore }) {
@@ -101,7 +124,7 @@ export default class TabCascader {
    *   form of having _flush consult a _pendingRace Map() that counts how many
    *   outstanding, expected-timely lookups are in flight.
    */
-  _ensureScheduledFlush() {
+  _ensureScheduledFlush(level: number) {
     if (this._flushTimerId) {
       return;
     }
@@ -136,7 +159,7 @@ export default class TabCascader {
   //////////////////////////////////////////////////////////////////////////////
   // Annotated tab book-keeping
 
-  _makeTabDataBundle() {
+  _makeTabDataBundle(): TabDataBundle {
     return {
       tags: [],
       antiTags: [],
@@ -145,7 +168,7 @@ export default class TabCascader {
     };
   }
 
-  _normalizeTabDataBundle(data) {
+  _normalizeTabDataBundle(data): TabDataBundle {
     return {
       tags: data.tags || [],
       antiTags: data.antiTags || [],
@@ -154,7 +177,7 @@ export default class TabCascader {
     };
   }
 
-  _getOrCreateGlomTab(normTab) {
+  _getOrCreateGlomTab(normTab: NormTab): GlomTab {
     let glomTab = this._glommedTabsBySuid.get(normTab.suid);
     if (glomTab) {
       return glomTab;
@@ -185,7 +208,7 @@ export default class TabCascader {
     return glomTab;
   }
 
-  _getGlomTabOrExplode(tabSuid) {
+  _getGlomTabOrExplode(tabSuid: SUID) {
     const glomTab = this._glommedTabsBySuid.get(tabSuid);
     if (glomTab) {
       return glomTab;
@@ -194,11 +217,11 @@ export default class TabCascader {
     throw new Error(`no tab with suid ${tabSuid}`);
   }
 
-  _getGlomTabNoExploding(tabSuid) {
+  _getGlomTabNoExploding(tabSuid: SUID) {
     return this._glommedTabsBySuid.get(tabSuid);
   }
 
-  _removeGlomTabBySuid(tabSuid) {
+  _removeGlomTabBySuid(tabSuid: SUID) {
     const glomTab = this._glommedTabsBySuid.get(tabSuid);
     if (glomTab) {
       this._glommedTabsBySuid.delete(tabSuid);
@@ -215,17 +238,17 @@ export default class TabCascader {
   //////////////////////////////////////////////////////////////////////////////
   // Notifications from the TabTracker
 
-  onCreatedNormTab(normTab) {
+  onCreatedNormTab(normTab: NormTab) {
     const glomTab = this._getOrCreateGlomTab(normTab);
     this._triggerStage1Lookups(glomTab);
   }
 
-  onChangedNormTab(normTab) {
+  onChangedNormTab(normTab: NormTab) {
     const glomTab = this._getGlomTabOrExplode(normTab.suid);
     this._triggerStage1Lookups(glomTab);
   }
 
-  onRemovedNormTab(normTab) {
+  onRemovedNormTab(normTab: NormTab) {
     // this handles the re-bucketing side-effects
     this._removeGlomTabBySuid(normTab.suid);
   }
@@ -233,12 +256,12 @@ export default class TabCascader {
   //////////////////////////////////////////////////////////////////////////////
   // Data from (async) content digging
 
-  _triggerContentDigging(glomTab) {
+  _triggerContentDigging(glomTab: GlomTab) {
     glomTab.shadow.digger =
       this.contentDigger.digUpdatedTab(glomTab.annoTab, glomTab.shadow.digger);
   }
 
-  setDataFromContentDigger(tabSuid, key, value) {
+  setDataFromContentDigger(tabSuid: SUID, key: string, value: any) {
     const glomTab = this._getGlomTabNoExploding(tabSuid);
     if (!glomTab) {
       return;
@@ -265,11 +288,15 @@ export default class TabCascader {
   // NB: The underlying implementation is currently sync, but it pretends that
   // it's async because
 
+  // XXX
+  flattenEffectsToData(effects: any): any {
+    return null;
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   // Stage 1
 
-  _triggerStage1Lookups(glomTab) {
+  _triggerStage1Lookups(glomTab: GlomTab) {
     if (this._sessionRestorePossible && !glomTab.shadow.tabMetaLookedUp) {
       // TODO: tab meta/session restore support
     }
@@ -286,14 +313,14 @@ export default class TabCascader {
   //////////////////////////////////////////////////////////////////////////////
   // Stage 2
 
-  _queueStage2Analysis(glomTab) {
+  _queueStage2Analysis(glomTab: GlomTab) {
     this._stage2PendingTabs.add(glomTab);
     this._ensureScheduledFlush(2);
   }
 
-  _triggerStage2Analysis(glomTab) {
+  _triggerStage2Analysis(glomTab: GlomTab) {
     const effects = this.rulesRuler.runTabAnalysis(glomTab.annoTab);
-    const resultData = flattenEffectsToData(effects);
+    const resultData = this.flattenEffectsToData(effects);
     if (resultData) {
       glomTab.annoTab.analyzed = this._normalizeTabDataBundle(resultData);
     }
@@ -306,19 +333,19 @@ export default class TabCascader {
   //////////////////////////////////////////////////////////////////////////////
   // Stage 3
 
-  _queueStage3Bucketing(glomTab) {
+  _queueStage3Bucketing(glomTab: GlomTab) {
     this._stage3PendingTabs.add(glomTab);
     this._ensureScheduledFlush(3);
   }
 
-  _triggerStage3Bucketing() {
+  _triggerStage3Bucketing(glomTab: GlomTab) {
 
   }
 
   //////////////////////////////////////////////////////////////////////////////
   // Stage 4
 
-  _queueStage4BucketBuild(bucket) {
+  _queueStage4BucketBuild(bucket: Bucket) {
     this._stage4PendingBuckets.add(bucket);
     this._ensureScheduledFlush(4);
   }

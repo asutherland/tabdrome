@@ -6,7 +6,7 @@
  * as endorsements, and history being inherently ephemeral.  So this would want
  * to continue to exist in some form even when we can better consult places.
  */
-export default class SiteMetaDataStore {
+export default class SiteMetadataStore {
   constructor({ storageManager }) {
     this.storageManager = storageManager;
   }

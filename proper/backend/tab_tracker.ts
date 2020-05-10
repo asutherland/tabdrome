@@ -1,3 +1,11 @@
+import { browser, Tabs, Browser } from "webextension-polyfill-ts";
+import { ParsedURL, BrowserWindowID, BrowserTabID, NormTab } from "./tab_types";
+
+interface PerWindowInfo {
+  activeTabId: BrowserTabID;
+  tabs: Map<BrowserTabID, NormTab>;
+}
+
 /**
  * Wraps/normalizes the chrome.tabs API and unifies/latches data sent from
  * our content script helpers.  This is also where any other per-tab data would
@@ -14,6 +22,13 @@
  * and process data from content scripts in one place.
  */
 export default class TabTracker {
+  _notifyTabCreated: (NormTab) => void;
+  _notifyTabChanged: (NormTab) => void;
+  _notifyTabRemoved: (NormTab) => void;
+  normTabsById: Map<BrowserTabID, NormTab>;
+  perWindowInfo: Map<BrowserWindowID, PerWindowInfo>;
+  globalSerial: number;
+
   constructor({ onTabCreated, onTabChanged, onTabRemoved }) {
     this._notifyTabCreated = onTabCreated;
     this._notifyTabChanged = onTabChanged;
@@ -57,7 +72,7 @@ export default class TabTracker {
     browser.windows.onRemoved.addListener(this.onWindowRemoved.bind(this));
   }
 
-  _parseAndExpandUrl(urlStr) {
+  _parseAndExpandUrl(urlStr): ParsedURL {
     let url = new URL(urlStr);
     let searchDict = {};
     for (let [key, value] of url.searchParams) {
@@ -79,7 +94,7 @@ export default class TabTracker {
     };
   }
 
-  _getOrCreateWindowInfo(windowId) {
+  _getOrCreateWindowInfo(windowId: BrowserWindowID) {
     let winInfo = this.perWindowInfo.get(windowId);
     if (!winInfo) {
       winInfo = {
@@ -91,15 +106,15 @@ export default class TabTracker {
     return winInfo;
   }
 
-  _learnAboutBrowserTab(tab) {
-    let normTab = {
+  _learnAboutBrowserTab(tab: Tabs.Tab) {
+    let normTab : NormTab = {
       id: tab.id,
       suid: '!' + tab.id,
       serial: ++this.globalSerial,
       createdTS: Date.now(),
       windowId: tab.windowId,
       index: tab.index,
-      openerTabId: tab.openedTabId,
+      openerTabId: tab.openerTabId,
       active: tab.active,
       lastActivatedSerial: tab.active ? this.globalSerial : 0,
       pinned: tab.pinned,
@@ -115,7 +130,9 @@ export default class TabTracker {
       mutedExtensionId: tab.mutedInfo && tab.mutedInfo.extensionId,
       sessionId: tab.sessionId,
       width: tab.width,
-      height: tab.height
+      height: tab.height,
+      fromContent: {
+      },
     };
 
     this.normTabsById.set(normTab.id, normTab);
@@ -131,7 +148,7 @@ export default class TabTracker {
     return normTab;
   }
 
-  _updateNormTabWithTab(normTab, tab) {
+  _updateNormTabWithTab(normTab: NormTab, tab) {
     // We could diff to determine whether bumping the serial is necessary, but
     // it seems reasonable to trust the upstream event generating logic to be
     // sufficiently competent that it's not just spamming us nonstop with BS

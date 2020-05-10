@@ -1,5 +1,4 @@
-class ContextSearcher {
+export default class ContextSearcher {
 
 }
 
-module.exports = ContextSearcher;

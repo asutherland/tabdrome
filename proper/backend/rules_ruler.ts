@@ -1,3 +1,5 @@
+import { AnnoTab } from "./tab_types";
+
 /**
  * Who rules the rules?  The rules ruler rules the rules.  (Have I mentioned
  * this is a hobby project?  RulesDriver is probably a better, non-silly name.)
@@ -22,7 +24,7 @@ export default class RulesRuler {
    * Run tab analysis rules against a given tab, producing a prioritized list of
    * analysis tags.
    */
-  runTabAnalysis(annoTab) {
+  runTabAnalysis(annoTab: AnnoTab) {
 
   }
 
@@ -35,7 +37,7 @@ export default class RulesRuler {
    * but they also don't want a single user-action to disable auto-actions for
    * the tab (unless that's the desired effect).
    */
-  runTabAutoActionMatching(annoTab) {
+  runTabAutoActionMatching(annoTab: AnnoTab) {
 
   }
 
@@ -43,7 +45,7 @@ export default class RulesRuler {
    * Run tab bucketing rules against an analzyed tab, producing the prioritized
    * list of bucket placements.
    */
-  runTabBucketing(annoTab) {
+  runTabBucketing(annoTab: AnnoTab) {
 
   }
 
@@ -52,7 +54,7 @@ export default class RulesRuler {
    * a list of context searchers w/arguments to trigger, and a list of synthetic
    * tabs/things to be arranged.
    */
-  runBucketDecoratoring(annoBucket) {
+  runBucketDecoratoring(annoBucket: AnnoTab) {
 
   }
 
@@ -63,7 +65,7 @@ export default class RulesRuler {
    * sort order for itself and same-type siblings.  (Non same-type siblings are
    * still subject to an ordering.  Nothing should be arbitrary/random.)
    */
-  runBucketContentsArranging(annoBucket) {
+  runBucketContentsArranging(annoBucket: AnnoTab) {
 
   }
 
@@ -72,7 +74,7 @@ export default class RulesRuler {
    * rules are appropriate.  These will be reported to the front-end and latched
    * for subsequent invocation when triggered by the user.
    */
-  runUserActionCandidateMatching(annoBucket) {
+  runUserActionCandidateMatching(annoBucket: AnnoTab) {
 
   }
 }
